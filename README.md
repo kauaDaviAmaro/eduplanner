@@ -1,36 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EduPlanner
 
-## Getting Started
+Plataforma de educação online com sistema de cursos, progresso de usuários e certificados.
 
-First, run the development server:
+## 🚀 Stack Tecnológica
 
+- **Frontend/Backend:** Next.js 16 (App Router)
+- **Banco de Dados:** PostgreSQL
+- **Autenticação:** NextAuth.js
+- **Storage:** MinIO (S3-compatible)
+- **Containerização:** Docker & Docker Compose
+- **Proxy Reverso:** NGINX
+
+## 📋 Pré-requisitos
+
+- Node.js 20+
+- Docker & Docker Compose
+- PostgreSQL (ou use Docker)
+
+## ⚡ Início Rápido
+
+### 1. Instalar Dependências
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configurar Variáveis de Ambiente
+Copie o arquivo `.env.example` para `.env.local` e configure:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cp env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Importante:** Para produção, gere um `NEXTAUTH_SECRET` seguro:
+```bash
+openssl rand -base64 32
+```
 
-## Learn More
+### 3. Iniciar Serviços (Docker)
+```bash
+docker compose up -d postgres minio minio-setup
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 4. Executar Migrations
+```bash
+# Migração automática (recomendado)
+npm run migrate
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 5. Iniciar Aplicação
+```bash
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Acesse: http://localhost:3000
 
-## Deploy on Vercel
+## 📚 Documentação
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Quick Start:** Veja `QUICK_START.md` para instruções detalhadas de desenvolvimento local
+- **Deploy:** Veja `DEPLOYMENT_STEPS.md` para instruções de deploy em VPS
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🗄️ Migrations
+
+O projeto inclui um sistema de migrações automáticas:
+
+```bash
+# Executar migrations pendentes
+npm run migrate
+
+# Via Docker
+npm run migrate:docker
+```
+
+As migrations são executadas automaticamente e apenas migrations pendentes são aplicadas.
+
+## 🐳 Docker
+
+```bash
+# Subir todos os serviços
+docker compose up -d
+
+# Ver logs
+docker compose logs -f app
+
+# Parar serviços
+docker compose down
+```
+
+## 📝 Scripts Disponíveis
+
+- `npm run dev` - Inicia servidor de desenvolvimento
+- `npm run build` - Build de produção
+- `npm run start` - Inicia servidor de produção
+- `npm run migrate` - Executa migrations do banco
+- `npm run lint` - Executa linter
+
+## 🔧 Troubleshooting
+
+Veja `QUICK_START.md` para soluções de problemas comuns.
+
+## 📄 Licença
+
+Este projeto é privado.

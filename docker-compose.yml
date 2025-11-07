@@ -1,0 +1,105 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: eduplanner-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-eduplanner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-eduplanner}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-eduplanner}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - eduplanner-network
+
+  # MinIO Object Storage (S3-compatible)
+  minio:
+    image: minio/minio:latest
+    container_name: eduplanner-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - eduplanner-network
+
+  # MinIO Client for initial bucket setup
+  minio-setup:
+    image: minio/mc:latest
+    container_name: eduplanner-minio-setup
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 10;
+      /usr/bin/mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin};
+      /usr/bin/mc mb myminio/videos --ignore-existing;
+      /usr/bin/mc mb myminio/attachments --ignore-existing;
+      /usr/bin/mc mb myminio/thumbnails --ignore-existing;
+      exit 0;
+      "
+    networks:
+      - eduplanner-network
+
+  # Next.js Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: eduplanner-app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-eduplanner}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-eduplanner}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      AUTH_SECRET: ${AUTH_SECRET:-${NEXTAUTH_SECRET:-changeme-me-super-hard-secret}}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-${AUTH_SECRET:-changeme-me-super-hard-secret}}
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_USE_SSL: "false"
+      MINIO_BUCKET_VIDEOS: videos
+      MINIO_BUCKET_ATTACHMENTS: attachments
+      MINIO_BUCKET_THUMBNAILS: thumbnails
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - eduplanner-network
+    volumes:
+      - ./migrations:/migrations:ro
+
+volumes:
+  postgres_data:
+    driver: local
+  minio_data:
+    driver: local
+
+networks:
+  eduplanner-network:
+    driver: bridge
+
