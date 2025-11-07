@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="#3B82F6" stroke="#2563EB" stroke-width="2"/>
+  
+  <!-- Book/Planner icon -->
+  <path d="M 30 25 L 30 75 L 70 75 L 70 25 Z" fill="white" opacity="0.9"/>
+  <path d="M 30 25 L 50 30 L 70 25" stroke="#3B82F6" stroke-width="2" fill="none"/>
+  
+  <!-- Lines representing pages/planner -->
+  <line x1="40" y1="40" x2="60" y2="40" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="40" y1="50" x2="60" y2="50" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="40" y1="60" x2="55" y2="60" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round"/>
+  
+  <!-- Checkmark representing completion/progress -->
+  <path d="M 45 50 L 48 53 L 55 46" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>
+

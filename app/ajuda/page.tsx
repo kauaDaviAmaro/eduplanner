@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth'
 import { getCurrentUserProfile } from '@/lib/queries/profiles'
 import { getAllTiers } from '@/lib/queries/subscriptions'
 import { Navbar } from '@/components/layout/navbar'
+import { HelpAccordion } from '@/components/help/help-accordion'
 import Link from 'next/link'
 
 export default async function HelpPage() {
@@ -338,35 +339,7 @@ export default async function HelpPage() {
         </div>
 
         {/* Help Sections */}
-        <div className="space-y-8">
-          {helpSections.map((section, sectionIndex) => (
-            <div
-              key={section.id}
-              id={section.id}
-              className="bg-white rounded-xl border border-gray-200 p-6 sm:p-8 animate-fade-in"
-              style={{ animationDelay: `${sectionIndex * 0.1}s` }}
-            >
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <div className="text-purple-600">{section.icon}</div>
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900">{section.title}</h2>
-              </div>
-
-              <div className="space-y-6">
-                {section.items.map((item, itemIndex) => (
-                  <div key={itemIndex} className="border-b border-gray-100 last:border-0 pb-6 last:pb-0">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-start">
-                      <span className="mr-2 text-purple-600">•</span>
-                      {item.question}
-                    </h3>
-                    <p className="text-gray-600 ml-5">{item.answer}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        <HelpAccordion sections={helpSections} />
 
         {/* Contact Section */}
         <div className="mt-12 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border border-purple-200 p-8">
