@@ -27,3 +27,4 @@ export function formatPrice(priceInCents: number): string {
   }).format(priceInCents / 100)
 }
 
+

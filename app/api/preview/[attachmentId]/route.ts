@@ -57,6 +57,14 @@ export async function GET(
     // - Full URL: "http://minio:9000/attachments/file-{id}.pdf"
     let fileKey = attachment.file_url
 
+    // Ensure fileKey is not null
+    if (!fileKey) {
+      return NextResponse.json(
+        { error: 'File URL not available' },
+        { status: 404 }
+      )
+    }
+
     // Remove protocol and domain if present
     if (fileKey.includes('://')) {
       const url = new URL(fileKey)
@@ -89,4 +97,5 @@ export async function GET(
     )
   }
 }
+
 

@@ -52,3 +52,4 @@ export function InProgressCourses({ courses }: { courses: CourseWithProgress[] }
   )
 }
 
+

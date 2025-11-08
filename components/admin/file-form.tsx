@@ -286,7 +286,7 @@ export function FileForm({ attachment, courses, tiers, onSuccess, onCancel }: Fi
             fileName: formData.fileName,
             fileType: formData.fileType,
             minimumTierId: formData.minimumTierId,
-            lessonId: isFileWithoutCourse ? null : selectedLessonId || undefined,
+            lessonId: isFileWithoutCourse ? undefined : selectedLessonId || undefined,
           })
 
           if (result.success) {

@@ -12,14 +12,22 @@ type Tier = Database['public']['Tables']['tiers']['Row']
 interface NewFilePageClientProps {
   courses: Course[]
   tiers: Tier[]
+  userName: string | null
+  currentTierId?: number
 }
 
-export function NewFilePageClient({ courses, tiers }: NewFilePageClientProps) {
+export function NewFilePageClient({ courses, tiers, userName, currentTierId }: NewFilePageClientProps) {
   const router = useRouter()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <Navbar />
+      <Navbar
+        userName={userName}
+        currentPath="/admin/files/new"
+        isAdmin={true}
+        currentTierId={currentTierId}
+        tiers={tiers}
+      />
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
         <nav className="mb-6" aria-label="Breadcrumb">

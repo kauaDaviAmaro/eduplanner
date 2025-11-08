@@ -22,7 +22,7 @@ export function CourseBuilder({ course: initialCourse, tiers }: CourseBuilderPro
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState<Step>(initialCourse ? 'thumbnail' : 'course')
   const [courseId, setCourseId] = useState<string | null>(initialCourse?.id || null)
-  const [course, setCourse] = useState<CourseWithModules | null>(initialCourse)
+  const [course, setCourse] = useState<CourseWithModules | null>(initialCourse ?? null)
   const [publishing, setPublishing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

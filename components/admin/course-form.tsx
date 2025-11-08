@@ -67,11 +67,12 @@ export function CourseForm({ course, courseId: propCourseId, tiers, onSuccess, o
 
         if (result.success && result.courseId) {
           // Update local courseId so thumbnail upload can work immediately
-          setLocalCourseId(result.courseId)
+          const newCourseId = result.courseId
+          setLocalCourseId(newCourseId)
           setSuccessMessage('Curso criado com sucesso! Agora você pode fazer upload do thumbnail.')
           setTimeout(() => {
             setSuccessMessage(null)
-            onSuccess(result.courseId)
+            onSuccess(newCourseId)
           }, 2000)
         } else {
           setError(result.error || 'Erro ao criar curso')

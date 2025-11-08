@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { isAdmin } from '@/lib/auth/helpers'
 import { getAllTiers, getCourseById } from '@/lib/queries/courses'
+import { getCurrentUserProfile } from '@/lib/queries/profiles'
 import { CourseBuilder } from '@/components/admin/course-builder'
 import { Navbar } from '@/components/layout/navbar'
 
@@ -16,9 +17,10 @@ export default async function EditCoursePage({ params }: EditCoursePageProps) {
   }
 
   const { id } = await params
-  const [course, tiers] = await Promise.all([
+  const [course, tiers, profile] = await Promise.all([
     getCourseById(id),
     getAllTiers(),
+    getCurrentUserProfile(),
   ])
 
   if (!course) {
@@ -27,7 +29,13 @@ export default async function EditCoursePage({ params }: EditCoursePageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar 
+        userName={profile?.name || null}
+        currentPath={`/admin/courses/${id}/edit`}
+        isAdmin={true}
+        currentTierId={profile?.tier_id}
+        tiers={tiers}
+      />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <CourseBuilder course={course} tiers={tiers} />
       </main>

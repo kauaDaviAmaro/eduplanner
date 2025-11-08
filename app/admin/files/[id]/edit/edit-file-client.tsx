@@ -14,14 +14,22 @@ interface EditFilePageClientProps {
   attachment: AttachmentForAdmin
   courses: Course[]
   tiers: Tier[]
+  userName: string | null
+  currentTierId?: number
 }
 
-export function EditFilePageClient({ attachment, courses, tiers }: EditFilePageClientProps) {
+export function EditFilePageClient({ attachment, courses, tiers, userName, currentTierId }: EditFilePageClientProps) {
   const router = useRouter()
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar
+        userName={userName}
+        currentPath={`/admin/files/${attachment.id}/edit`}
+        isAdmin={true}
+        currentTierId={currentTierId}
+        tiers={tiers}
+      />
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <Link

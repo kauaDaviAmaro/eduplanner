@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { isAdmin } from '@/lib/auth/helpers'
 import { getAllAttachmentsForAdmin } from '@/lib/queries/admin'
 import { getAllCourses, getAllTiers } from '@/lib/queries/courses'
+import { getCurrentUserProfile } from '@/lib/queries/profiles'
 import { Navbar } from '@/components/layout/navbar'
 import { FileFilters } from '@/components/admin/file-filters'
 import { FilesList } from '@/components/admin/files-list'
@@ -35,10 +36,11 @@ export default async function AdminFilesPage({ searchParams }: FilesPageProps) {
   const sortBy = (params.sort as SortOption) || 'date'
 
   // Fetch data
-  const [attachments, courses, tiers] = await Promise.all([
+  const [attachments, courses, tiers, profile] = await Promise.all([
     getAllAttachmentsForAdmin(),
     getAllCourses(),
     getAllTiers(),
+    getCurrentUserProfile(),
   ])
 
   // Apply filters
@@ -116,7 +118,13 @@ export default async function AdminFilesPage({ searchParams }: FilesPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar 
+        userName={profile?.name || null}
+        currentPath="/admin/files"
+        isAdmin={true}
+        currentTierId={profile?.tier_id}
+        tiers={tiers}
+      />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex items-center justify-between">
           <div>

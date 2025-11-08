@@ -44,12 +44,27 @@ export async function GET(
       )
     }
 
+    if (!attachment.file_url) {
+      return NextResponse.json(
+        { error: 'File URL not available' },
+        { status: 404 }
+      )
+    }
+
     // Extract the MinIO key from file_url
     // file_url can be:
     // - Just the key: "file-{id}.pdf"
     // - Key with bucket: "attachments/file-{id}.pdf"
     // - Full URL: "http://minio:9000/attachments/file-{id}.pdf"
     let fileKey = attachment.file_url
+
+    // Ensure fileKey is not null
+    if (!fileKey) {
+      return NextResponse.json(
+        { error: 'File URL not available' },
+        { status: 404 }
+      )
+    }
 
     // Remove protocol and domain if present
     if (fileKey.includes('://')) {
