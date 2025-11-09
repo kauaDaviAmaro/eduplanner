@@ -12,3 +12,4 @@ CREATE INDEX IF NOT EXISTS idx_attachments_lesson_id_null ON attachments(lesson_
 
 
 
+
