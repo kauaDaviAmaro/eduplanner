@@ -1,12 +1,15 @@
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
+import { isBuildTimeError } from '@/lib/auth/build-error'
 
 export async function Footer() {
   let session = null
   try {
     session = await auth()
   } catch (error) {
-    console.warn('Session error in footer:', error)
+    if (!isBuildTimeError(error)) {
+      console.warn('Session error in footer:', error)
+    }
     session = null
   }
 

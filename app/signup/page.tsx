@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
+import { isBuildTimeError } from '@/lib/auth/build-error'
 import { SignUpForm } from '@/components/auth/signup-form'
 import Link from 'next/link'
 
@@ -8,20 +9,18 @@ export default async function SignUpPage({
 }: Readonly<{
   searchParams: Promise<{ error?: string; success?: string }>
 }>) {
-  // Handle potential JWT session errors gracefully
   let session = null
   try {
     session = await auth()
   } catch (error) {
-    // If there's a JWT session error (corrupted cookie or secret mismatch),
-    // treat it as no session - user can still sign up
-    console.warn('Session error (likely corrupted cookie):', error)
+    if (!isBuildTimeError(error)) {
+      console.warn('Session error (likely corrupted cookie):', error)
+    }
     session = null
   }
   
   const params = await searchParams
 
-  // If user is already logged in, redirect
   if (session?.user) {
     redirect('/dashboard')
   }

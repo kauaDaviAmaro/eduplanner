@@ -1,4 +1,5 @@
 import { auth } from '@/lib/auth'
+import { isBuildTimeError } from '@/lib/auth/build-error'
 import { getCurrentUserProfile } from '@/lib/queries/profiles'
 import { getAllTiers } from '@/lib/queries/subscriptions'
 import { Navbar } from '@/components/layout/navbar'
@@ -6,7 +7,6 @@ import { HelpAccordion } from '@/components/help/help-accordion'
 import Link from 'next/link'
 
 export default async function HelpPage() {
-  // Handle potential JWT session errors gracefully
   let session = null
   let profile = null
   let isAdmin = false
@@ -20,7 +20,9 @@ export default async function HelpPage() {
       allTiers = await getAllTiers()
     }
   } catch (error) {
-    console.warn('Session error:', error)
+    if (!isBuildTimeError(error)) {
+      console.warn('Session error:', error)
+    }
   }
 
   const helpSections = [

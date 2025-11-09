@@ -10,3 +10,5 @@ ALTER COLUMN lesson_id DROP NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_attachments_lesson_id_null ON attachments(lesson_id) WHERE lesson_id IS NULL;
 
 
+
+

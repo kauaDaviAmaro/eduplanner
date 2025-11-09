@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
+import { isBuildTimeError } from '@/lib/auth/build-error'
 import { getDashboardData } from '@/lib/queries/dashboard'
 import { getCurrentUserProfile } from '@/lib/queries/profiles'
 import { getAdminStats, getAllUsers, getAllCoursesForAdmin } from '@/lib/queries/admin'
@@ -29,14 +30,13 @@ interface DashboardPageProps {
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const params = await searchParams
   const currentTab = params.tab || 'dashboard'
-  // Handle potential JWT session errors gracefully
   let session = null
   try {
     session = await auth()
   } catch (error) {
-    // If there's a JWT session error (corrupted cookie or secret mismatch),
-    // redirect to login to clear the session
-    console.warn('Session error (likely corrupted cookie):', error)
+    if (!isBuildTimeError(error)) {
+      console.warn('Session error (likely corrupted cookie):', error)
+    }
     redirect('/login?error=' + encodeURIComponent('Sessão inválida. Por favor, faça login novamente.'))
   }
 
@@ -44,22 +44,17 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     redirect('/login')
   }
 
-  // Get profile first (required)
   const profile = await getCurrentUserProfile()
   if (!profile) {
-    // If profile doesn't exist, it might be a new user - give them a chance
-    // The trigger should create it automatically, but there might be a delay
     console.warn('Profile not found for user:', session.user.id)
     redirect('/login?error=' + encodeURIComponent('Perfil não encontrado. Se você acabou de criar a conta, aguarde alguns segundos e tente novamente.'))
   }
 
-  // Get dashboard data with error handling
   let dashboardData
   try {
     dashboardData = await getDashboardData(session.user.id)
   } catch (error) {
     console.error('Error loading dashboard data:', error)
-    // Use default values for dashboard data if loading fails
     dashboardData = {
       overallProgress: { percentage: 0, completedCourses: 0, totalCourses: 0 },
       lastWatchedLesson: null,
@@ -75,10 +70,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     }
   }
 
-  // Check if user is admin and get admin data
   const isAdmin = session.user.isAdmin || false
   
-  // Redirect non-admins trying to access admin tabs
   if ((currentTab === 'stats' || currentTab === 'users' || currentTab === 'courses' || currentTab === 'files') && !isAdmin) {
     redirect('/dashboard')
   }
@@ -100,11 +93,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       ])
     } catch (error) {
       console.error('Error loading admin data:', error)
-      // Continue without admin data if there's an error
     }
   }
 
-  // Get tiers for admin tier selector
   const allTiers = tiers || (isAdmin ? await getAllTiers() : [])
 
   return (

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
+import { isBuildTimeError } from '@/lib/auth/build-error'
 import { getCourseById, hasCourseAccess } from '@/lib/queries/courses'
 import { getCourseProgress } from '@/lib/queries/user-progress'
 import { getCurrentUserId } from '@/lib/auth/helpers'
@@ -14,30 +15,26 @@ export default async function CoursePage({
   params: Promise<{ id: string }>
 }>) {
   const { id } = await params
-  // Handle potential JWT session errors gracefully
   let session = null
   try {
     session = await auth()
   } catch (error) {
-    // If there's a JWT session error (corrupted cookie or secret mismatch),
-    // redirect to login to clear the session
-    console.warn('Session error (likely corrupted cookie):', error)
+    if (!isBuildTimeError(error)) {
+      console.warn('Session error (likely corrupted cookie):', error)
+    }
     redirect('/login?error=' + encodeURIComponent('Sessão inválida. Por favor, faça login novamente.'))
   }
 
-  // Check if user is authenticated
   if (!session?.user) {
     redirect('/login')
   }
 
-  // Check if user has access to this course
   const hasAccess = await hasCourseAccess(id)
 
   if (!hasAccess) {
     redirect('/upgrade')
   }
 
-  // Fetch the course with all modules, lessons, and attachments
   const course = await getCourseById(id)
   const profile = await getCurrentUserProfile()
   const userId = await getCurrentUserId()
@@ -50,10 +47,8 @@ export default async function CoursePage({
     )
   }
 
-  // Fetch user progress for this course
   const progress = userId ? await getCourseProgress(userId, id) : []
 
-  // Get all tiers for admin tier selector
   const allTiers = await getAllTiers()
   const isAdmin = session.user.isAdmin || false
 

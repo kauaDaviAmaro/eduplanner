@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
+import { isBuildTimeError } from '@/lib/auth/build-error'
 import { getAllTiers } from '@/lib/queries/subscriptions'
 import { getCurrentUserProfile } from '@/lib/queries/profiles'
 import { getActiveSubscription } from '@/lib/queries/subscriptions'
@@ -17,12 +18,13 @@ interface PlansPageProps {
 }
 
 export default async function PlansPage({ searchParams }: PlansPageProps) {
-  // Handle potential JWT session errors gracefully
   let session = null
   try {
     session = await auth()
   } catch (error) {
-    console.warn('Session error (likely corrupted cookie):', error)
+    if (!isBuildTimeError(error)) {
+      console.warn('Session error (likely corrupted cookie):', error)
+    }
     session = null
   }
 
@@ -31,10 +33,8 @@ export default async function PlansPage({ searchParams }: PlansPageProps) {
   const canceled = params.canceled === 'true'
   const error = params.error
 
-  // Get all tiers
   const tiers = await getAllTiers()
 
-  // Get current user info if authenticated
   let currentTierId: number | undefined
   let userName: string | null = null
   let isAdmin = false

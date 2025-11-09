@@ -1,15 +1,15 @@
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
+import { isBuildTimeError } from '@/lib/auth/build-error'
 
 export default async function HomePage() {
-  // Handle potential JWT session errors gracefully
   let session = null
   try {
     session = await auth()
   } catch (error) {
-    // If there's a JWT session error (corrupted cookie or secret mismatch),
-    // treat it as no session
-    console.warn('Session error (likely corrupted cookie):', error)
+    if (!isBuildTimeError(error)) {
+      console.warn('Session error (likely corrupted cookie):', error)
+    }
     session = null
   }
   const user = session?.user

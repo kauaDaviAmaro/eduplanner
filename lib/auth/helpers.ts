@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth'
 import { query, queryOne } from '@/lib/db/client'
 import bcrypt from 'bcryptjs'
+import { isBuildTimeError } from './build-error'
 
 /**
  * Get the current session safely, handling JWT errors gracefully
@@ -9,8 +10,9 @@ export async function getSession() {
   try {
     return await auth()
   } catch (error) {
-    // If there's a JWT session error (corrupted cookie or secret mismatch),
-    // return null instead of throwing
+    if (isBuildTimeError(error)) {
+      return null
+    }
     console.warn('Session error (likely corrupted cookie):', error)
     return null
   }
@@ -74,10 +76,8 @@ export async function createUserWithPassword(
     return null
   }
 
-  // Hash password
   const hashedPassword = await bcrypt.hash(password, 10)
 
-  // Create user (trigger will create profile automatically)
   const userId = await queryOne<{ id: string }>(
     `INSERT INTO users (email, name, created_at, updated_at)
      VALUES ($1, $2, NOW(), NOW())
@@ -89,7 +89,6 @@ export async function createUserWithPassword(
     return null
   }
 
-  // Create account with password
   await query(
     `INSERT INTO accounts (
       user_id, type, provider, provider_account_id,

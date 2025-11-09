@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
+import { isBuildTimeError } from '@/lib/auth/build-error'
 import { getCurrentUserProfile } from '@/lib/queries/profiles'
 import {
   getAllCoursesWithProgress,
@@ -24,14 +25,13 @@ interface CoursesPageProps {
 }
 
 export default async function CoursesPage({ searchParams }: CoursesPageProps) {
-  // Handle potential JWT session errors gracefully
   let session = null
   try {
     session = await auth()
   } catch (error) {
-    // If there's a JWT session error (corrupted cookie or secret mismatch),
-    // redirect to login to clear the session
-    console.warn('Session error (likely corrupted cookie):', error)
+    if (!isBuildTimeError(error)) {
+      console.warn('Session error (likely corrupted cookie):', error)
+    }
     redirect('/login?error=' + encodeURIComponent('Sessão inválida. Por favor, faça login novamente.'))
   }
 
@@ -44,33 +44,27 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
     redirect('/login?error=' + encodeURIComponent('Perfil não encontrado'))
   }
 
-  // Get search params
   const params = await searchParams
   const search = params.search || ''
   const progressFilter = (params.progress as ProgressFilter) || 'all'
   const tierFilter = params.tier || 'all'
   const sortBy = (params.sort as SortOption) || 'date'
 
-  // Fetch data
   const [courses, favoriteIds, tiers] = await Promise.all([
     getAllCoursesWithProgress(),
     getFavoriteCourseIds(),
     getAllTiers(),
   ])
 
-  // Create a map of tier_id -> tier for quick lookup
   const tierMap = new Map(tiers.map((tier) => [tier.id, tier]))
 
-  // Get tier info for each course (using the map)
   const coursesWithTiers = courses.map((course) => {
     const tier = tierMap.get(course.minimum_tier_id) || null
     return { course, tier }
   })
 
-  // Apply filters
   let filteredCourses = coursesWithTiers
 
-  // Search filter
   if (search) {
     const searchLower = search.toLowerCase()
     filteredCourses = filteredCourses.filter(
@@ -80,7 +74,6 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
     )
   }
 
-  // Progress filter
   if (progressFilter === 'in-progress') {
     filteredCourses = filteredCourses.filter(
       ({ course }) => course.progress.percentage > 0 && course.progress.percentage < 100
@@ -95,7 +88,6 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
     )
   }
 
-  // Tier filter
   if (tierFilter !== 'all') {
     const tierId = Number.parseInt(tierFilter, 10)
     filteredCourses = filteredCourses.filter(
@@ -103,21 +95,18 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
     )
   }
 
-  // Sort
   const sortedCourses = [...filteredCourses].sort((a, b) => {
     if (sortBy === 'title') {
       return a.course.title.localeCompare(b.course.title)
     } else if (sortBy === 'progress') {
       return b.course.progress.percentage - a.course.progress.percentage
     } else {
-      // date (default)
       return (
         new Date(b.course.created_at).getTime() - new Date(a.course.created_at).getTime()
       )
     }
   })
 
-  // Get all tiers for admin tier selector
   const allTiers = await getAllTiersFromSubscriptions()
   const isAdmin = session.user.isAdmin || false
 

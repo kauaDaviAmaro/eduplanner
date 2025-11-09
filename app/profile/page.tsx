@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
+import { isBuildTimeError } from '@/lib/auth/build-error'
 import { getCurrentUserProfile } from '@/lib/queries/profiles'
 import { getUserProgressStats } from '@/lib/queries/user-progress'
 import { getDashboardData, getAvailableCertificates, getFavoriteCourses } from '@/lib/queries/dashboard'
@@ -12,14 +13,13 @@ import { Navbar } from '@/components/layout/navbar'
 import Link from 'next/link'
 
 export default async function ProfilePage() {
-  // Handle potential JWT session errors gracefully
   let session = null
   try {
     session = await auth()
   } catch (error) {
-    // If there's a JWT session error (corrupted cookie or secret mismatch),
-    // redirect to login to clear the session
-    console.warn('Session error (likely corrupted cookie):', error)
+    if (!isBuildTimeError(error)) {
+      console.warn('Session error (likely corrupted cookie):', error)
+    }
     redirect('/login?error=' + encodeURIComponent('Sessão inválida. Por favor, faça login novamente.'))
   }
 
@@ -32,7 +32,6 @@ export default async function ProfilePage() {
     redirect('/login?error=' + encodeURIComponent('Perfil não encontrado'))
   }
 
-  // Fetch all profile data
   const [progressStats, dashboardData, certificates, favoriteCourses, activeSubscription] = await Promise.all([
     getUserProgressStats(session.user.id),
     getDashboardData(session.user.id),
@@ -41,14 +40,12 @@ export default async function ProfilePage() {
     getActiveSubscription(session.user.id),
   ])
 
-  // Format account creation date
   const accountCreatedDate = new Date(profile.created_at).toLocaleDateString('pt-BR', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   })
 
-  // Get all tiers for admin tier selector
   const allTiers = await getAllTiers()
   const isAdmin = session.user.isAdmin || false
 

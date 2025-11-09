@@ -17,7 +17,6 @@ export const authConfig: NextAuthConfig = {
           return null
         }
 
-        // Find user by email with password from accounts table
         const user = await queryOne<{
           id: string
           email: string
@@ -35,12 +34,10 @@ export const authConfig: NextAuthConfig = {
           return null
         }
 
-        // If user doesn't have a password (OAuth user), reject
         if (!user.password) {
           return null
         }
 
-        // Verify password
         const isValid = await bcrypt.compare(
           credentials.password as string,
           user.password
@@ -50,7 +47,6 @@ export const authConfig: NextAuthConfig = {
           return null
         }
 
-        // Return user object (password is not included)
         return {
           id: user.id,
           email: user.email,
@@ -68,7 +64,6 @@ export const authConfig: NextAuthConfig = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        // Fetch user profile with tier info
         const profile = await queryOne<{
           tier_id: number
           is_admin: boolean
