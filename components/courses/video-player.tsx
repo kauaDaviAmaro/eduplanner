@@ -402,7 +402,7 @@ export function VideoPlayer({
       )}
       <div 
         ref={containerRef}
-        className="w-full aspect-video bg-black rounded-lg overflow-hidden relative group"
+        className="w-full aspect-video bg-black rounded-2xl overflow-hidden relative group shadow-2xl"
         onMouseMove={() => {
           setShowControls(true)
           if (controlsTimeoutRef.current) {
@@ -457,16 +457,24 @@ export function VideoPlayer({
           />
         </div>
 
-        {/* End Overlay */}
+        {/* End Overlay - Enhanced */}
         {showEndOverlay && (
-          <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50 animate-fadeIn">
-            <div className="text-center p-8 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
-              <div className="mb-6">
-                <svg className="w-20 h-20 text-green-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <h3 className="text-2xl font-bold text-white mb-2">Aula Concluída!</h3>
-                <p className="text-gray-300">Parabéns por completar esta aula</p>
+          <div className="absolute inset-0 bg-gradient-to-br from-black/90 via-purple-900/50 to-black/90 backdrop-blur-md flex items-center justify-center z-50 animate-fadeIn">
+            <div className="text-center p-10 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl max-w-md mx-4 animate-scale-in">
+              <div className="mb-8">
+                <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-2xl shadow-green-500/50 animate-scale-in">
+                  <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-3xl font-bold text-white mb-3">Aula Concluída!</h3>
+                <p className="text-gray-200 text-lg">Parabéns por completar esta aula</p>
+                <div className="mt-4 flex items-center justify-center gap-2 text-gray-300">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-sm">Continue aprendendo!</span>
+                </div>
               </div>
               <button
                 onClick={() => {
@@ -475,7 +483,7 @@ export function VideoPlayer({
                     onEnded()
                   }
                 }}
-                className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all transform hover:scale-105 active:scale-95 font-semibold text-lg shadow-xl shadow-purple-500/30"
               >
                 Continuar
               </button>
@@ -483,27 +491,29 @@ export function VideoPlayer({
           </div>
         )}
 
-        {/* Custom Controls Overlay */}
+        {/* Custom Controls Overlay - Enhanced */}
         <div 
-          className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity duration-300 ${
+          className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300 pointer-events-none ${
             showControls ? 'opacity-100' : 'opacity-0'
           }`}
         >
-          {/* Progress Bar */}
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-700/50 cursor-pointer group/progress">
+          {/* Progress Bar - Enhanced */}
+          <div className="absolute bottom-0 left-0 right-0 h-2 bg-gray-800/50 cursor-pointer group/progress pointer-events-auto">
             <div 
-              className="h-full bg-purple-600 transition-all duration-150"
+              className="h-full bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 transition-all duration-150 relative overflow-hidden"
               style={{ width: `${progressPercentage}%` }}
-            />
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+            </div>
             <div 
-              className="absolute top-1/2 -translate-y-1/2 h-4 w-4 bg-purple-600 rounded-full opacity-0 group-hover/progress:opacity-100 transition-opacity"
-              style={{ left: `calc(${progressPercentage}% - 8px)` }}
+              className="absolute top-1/2 -translate-y-1/2 h-5 w-5 bg-white rounded-full opacity-0 group-hover/progress:opacity-100 transition-all shadow-lg border-2 border-purple-600 transform scale-0 group-hover/progress:scale-100"
+              style={{ left: `calc(${progressPercentage}% - 10px)` }}
             />
           </div>
 
-          {/* Controls Bar */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 space-y-3">
-            {/* Progress Slider */}
+          {/* Controls Bar - Enhanced */}
+          <div className="absolute bottom-0 left-0 right-0 p-5 space-y-4 pointer-events-auto">
+            {/* Progress Slider - Enhanced */}
             <div className="flex items-center gap-3">
               <input
                 type="range"
@@ -512,17 +522,17 @@ export function VideoPlayer({
                 step={0.001}
                 value={played}
                 onChange={handleSeekChange}
-                className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                className="flex-1 h-2 bg-gray-700/80 rounded-lg appearance-none cursor-pointer slider-enhanced"
               />
             </div>
 
-            {/* Main Controls */}
+            {/* Main Controls - Enhanced */}
             <div className="flex items-center justify-between text-white">
-              <div className="flex items-center gap-4">
-                {/* Play/Pause */}
+              <div className="flex items-center gap-3">
+                {/* Play/Pause - Enhanced */}
                 <button
                   onClick={() => setPlaying(!playing)}
-                  className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                  className="p-3 hover:bg-white/25 rounded-xl transition-all transform hover:scale-110 active:scale-95 bg-white/10 backdrop-blur-sm"
                   aria-label={playing ? 'Pausar' : 'Reproduzir'}
                 >
                   {playing ? (
@@ -536,11 +546,11 @@ export function VideoPlayer({
                   )}
                 </button>
 
-                {/* Volume */}
-                <div className="flex items-center gap-2">
+                {/* Volume - Enhanced */}
+                <div className="flex items-center gap-2 group/volume">
                   <button
                     onClick={() => setMuted(!muted)}
-                    className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                    className="p-2.5 hover:bg-white/25 rounded-xl transition-all transform hover:scale-110 active:scale-95 bg-white/10 backdrop-blur-sm"
                     aria-label={muted ? 'Ativar som' : 'Desativar som'}
                   >
                     {muted || volume === 0 ? (
@@ -568,23 +578,25 @@ export function VideoPlayer({
                       setVolume(newVolume)
                       setMuted(newVolume === 0)
                     }}
-                    className="w-20 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                    className="w-24 h-1.5 bg-gray-700/80 rounded-lg appearance-none cursor-pointer volume-slider opacity-0 group-hover/volume:opacity-100 transition-opacity"
                   />
                 </div>
 
-                {/* Time Display */}
-                <div className="text-sm font-mono">
-                  {formatTime(playedSeconds)} / {formatTime(duration)}
+                {/* Time Display - Enhanced */}
+                <div className="text-sm font-mono bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg">
+                  <span className="text-white">{formatTime(playedSeconds)}</span>
+                  <span className="text-gray-400"> / </span>
+                  <span className="text-gray-300">{formatTime(duration)}</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                {/* Playback Rate */}
+              <div className="flex items-center gap-3">
+                {/* Playback Rate - Enhanced */}
                 <div className="flex items-center gap-2">
                   <select
                     value={playbackRate}
                     onChange={(e) => setPlaybackRate(parseFloat(e.target.value))}
-                    className="bg-white/20 text-white text-sm px-2 py-1 rounded border border-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="bg-white/20 backdrop-blur-sm text-white text-sm px-3 py-1.5 rounded-lg border border-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500 hover:bg-white/25 transition-colors cursor-pointer"
                   >
                     <option value={0.5}>0.5x</option>
                     <option value={0.75}>0.75x</option>
@@ -595,10 +607,10 @@ export function VideoPlayer({
                   </select>
                 </div>
 
-                {/* Fullscreen */}
+                {/* Fullscreen - Enhanced */}
                 <button
                   onClick={toggleFullscreen}
-                  className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                  className="p-2.5 hover:bg-white/25 rounded-xl transition-all transform hover:scale-110 active:scale-95 bg-white/10 backdrop-blur-sm"
                   aria-label="Tela cheia"
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -609,59 +621,82 @@ export function VideoPlayer({
             </div>
           </div>
 
-          {/* Center Play Button (when paused) */}
+          {/* Center Play Button (when paused) - Enhanced */}
           {!playing && !showEndOverlay && (
             <button
               onClick={() => setPlaying(true)}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-4 bg-white/20 hover:bg-white/30 rounded-full backdrop-blur-sm transition-all transform hover:scale-110"
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-6 bg-white/20 hover:bg-white/30 rounded-full backdrop-blur-md transition-all transform hover:scale-110 active:scale-95 shadow-2xl border border-white/20"
               aria-label="Reproduzir"
             >
-              <svg className="w-16 h-16 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-20 h-20 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
             </button>
           )}
         </div>
 
-        {/* Saving Progress Indicator */}
+        {/* Saving Progress Indicator - Enhanced */}
         {isSavingProgress && (
-          <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 backdrop-blur-sm">
+          <div className="absolute top-6 right-6 bg-gradient-to-r from-purple-600/90 to-indigo-600/90 text-white px-4 py-2.5 rounded-xl text-sm flex items-center gap-2 backdrop-blur-md shadow-xl border border-white/20 animate-fade-in">
             <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span>Salvando progresso...</span>
+            <span className="font-medium">Salvando progresso...</span>
           </div>
         )}
       </div>
 
-      {/* Custom Slider Styles */}
+      {/* Custom Slider Styles - Enhanced */}
       <style jsx>{`
-        .slider::-webkit-slider-thumb {
+        .slider-enhanced::-webkit-slider-thumb {
           appearance: none;
-          width: 16px;
-          height: 16px;
+          width: 18px;
+          height: 18px;
           border-radius: 50%;
-          background: #9333ea;
+          background: linear-gradient(135deg, #9333ea, #6366f1);
           cursor: pointer;
           opacity: 0;
-          transition: opacity 0.2s;
+          transition: all 0.2s;
+          box-shadow: 0 2px 8px rgba(147, 51, 234, 0.5);
+          border: 2px solid white;
         }
-        .slider:hover::-webkit-slider-thumb {
+        .slider-enhanced:hover::-webkit-slider-thumb {
           opacity: 1;
+          transform: scale(1.2);
         }
-        .slider::-moz-range-thumb {
-          width: 16px;
-          height: 16px;
+        .slider-enhanced::-moz-range-thumb {
+          width: 18px;
+          height: 18px;
           border-radius: 50%;
-          background: #9333ea;
+          background: linear-gradient(135deg, #9333ea, #6366f1);
+          cursor: pointer;
+          border: 2px solid white;
+          opacity: 0;
+          transition: all 0.2s;
+          box-shadow: 0 2px 8px rgba(147, 51, 234, 0.5);
+        }
+        .slider-enhanced:hover::-moz-range-thumb {
+          opacity: 1;
+          transform: scale(1.2);
+        }
+        .volume-slider::-webkit-slider-thumb {
+          appearance: none;
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          background: white;
+          cursor: pointer;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .volume-slider::-moz-range-thumb {
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          background: white;
           cursor: pointer;
           border: none;
-          opacity: 0;
-          transition: opacity 0.2s;
-        }
-        .slider:hover::-moz-range-thumb {
-          opacity: 1;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
       `}</style>
     </div>

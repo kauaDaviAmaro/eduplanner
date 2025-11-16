@@ -41,7 +41,11 @@ export async function signUp(
       password,
       redirect: false,
     })
-  } catch (error) {
+  } catch (error: any) {
+    // Next.js redirect() throws a special error that should not be logged
+    if (error?.digest?.startsWith('NEXT_REDIRECT')) {
+      throw error
+    }
     console.error('Error signing in after registration:', error)
     redirect('/signup?error=' + encodeURIComponent('Conta criada, mas falha ao fazer login. Tente fazer login manualmente.'))
   }
@@ -98,6 +102,12 @@ export async function signIn(
     // Use redirect() to ensure cookies are properly sent in the response
     redirect(redirectTo || '/dashboard')
   } catch (error: any) {
+    // Next.js redirect() throws a special error that should not be logged
+    if (error?.digest?.startsWith('NEXT_REDIRECT')) {
+      // Re-throw redirect errors so Next.js can handle them
+      throw error
+    }
+
     // Only log non-credential errors
     if (error?.type !== 'CredentialsSignin') {
       console.error('Unexpected error in signIn:', error)
@@ -112,8 +122,16 @@ export async function signIn(
 }
 
 export async function signOut() {
-  await nextAuthSignOut({ redirect: false })
-  revalidatePath('/', 'layout')
-  redirect('/login')
+  try {
+    await nextAuthSignOut({ redirect: false })
+    revalidatePath('/', 'layout')
+    redirect('/login')
+  } catch (error: any) {
+    // Next.js redirect() throws a special error that should not be logged
+    if (error?.digest?.startsWith('NEXT_REDIRECT')) {
+      throw error
+    }
+    throw error
+  }
 }
 

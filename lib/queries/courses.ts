@@ -236,3 +236,15 @@ export async function getAllTiers(): Promise<Tier[]> {
   )
   return tiers
 }
+
+/**
+ * Get public courses for landing page (no authentication required)
+ * Returns all courses without tier restrictions, limited by count
+ */
+export async function getPublicCourses(limit: number = 10): Promise<Course[]> {
+  const courses = await queryMany<Course>(
+    `SELECT * FROM courses ORDER BY created_at DESC LIMIT $1`,
+    [limit]
+  )
+  return courses
+}

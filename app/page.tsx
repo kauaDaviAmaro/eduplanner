@@ -3,7 +3,11 @@ import { auth } from '@/lib/auth'
 import { isBuildTimeError } from '@/lib/auth/build-error'
 import { getFileProductsWithPurchaseStatus } from '@/lib/queries/file-products'
 import { getProductsWithPurchaseStatus } from '@/lib/queries/products'
+import { getPublicCourses, getAllTiers } from '@/lib/queries/courses'
+import { getPublicAttachments } from '@/lib/queries/attachments'
 import { FeaturedProductsSection } from '@/components/shop/featured-products-section'
+import { FeaturedCoursesSection } from '@/components/courses/featured-courses-section'
+import { FeaturedFilesSection } from '@/components/files/featured-files-section'
 
 // Force dynamic rendering to avoid build-time database access
 export const dynamic = 'force-dynamic'
@@ -20,22 +24,31 @@ export default async function HomePage() {
   }
   const user = session?.user
 
-  // Get featured products for landing page (limit to 4 of each type)
+  // Get featured content for landing page
   let featuredFileProducts: Awaited<ReturnType<typeof getFileProductsWithPurchaseStatus>> = []
   let featuredProducts: Awaited<ReturnType<typeof getProductsWithPurchaseStatus>> = []
+  let featuredCourses: Awaited<ReturnType<typeof getPublicCourses>> = []
+  let featuredFiles: Awaited<ReturnType<typeof getPublicAttachments>> = []
+  let tiers: Awaited<ReturnType<typeof getAllTiers>> = []
   
   try {
-    const [allFileProducts, allProducts] = await Promise.all([
+    const [allFileProducts, allProducts, publicCourses, publicFiles, allTiers] = await Promise.all([
       getFileProductsWithPurchaseStatus(),
       getProductsWithPurchaseStatus(),
+      getPublicCourses(10),
+      getPublicAttachments(10),
+      getAllTiers(),
     ])
 
     // Get first 4 active products of each type
     featuredFileProducts = allFileProducts.filter(p => p.is_active).slice(0, 4)
     featuredProducts = allProducts.filter(p => p.is_active).slice(0, 4)
+    featuredCourses = publicCourses
+    featuredFiles = publicFiles
+    tiers = allTiers
   } catch (error) {
-    // If database is not available during build, just show empty products
-    console.warn('Could not load products for landing page:', error)
+    // If database is not available during build, just show empty content
+    console.warn('Could not load content for landing page:', error)
   }
   
   const isAuthenticated = !!user
@@ -65,12 +78,38 @@ export default async function HomePage() {
               <span className="text-xl font-bold text-gray-900 dark:text-gray-900">EduPlanner</span>
             </div>
             <div className="flex items-center space-x-4">
-              <Link
-                href="/ajuda"
-                className="text-sm font-medium text-gray-700 dark:text-gray-700 hover:text-purple-600 dark:hover:text-purple-600 transition-colors"
-              >
-                Ajuda
-              </Link>
+              <div className="hidden md:flex items-center space-x-6">
+                <Link
+                  href="/courses"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-700 hover:text-purple-600 dark:hover:text-purple-600 transition-colors"
+                >
+                  Cursos
+                </Link>
+                <Link
+                  href="/loja"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-700 hover:text-purple-600 dark:hover:text-purple-600 transition-colors"
+                >
+                  Loja
+                </Link>
+                <Link
+                  href="/files"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-700 hover:text-purple-600 dark:hover:text-purple-600 transition-colors"
+                >
+                  Biblioteca
+                </Link>
+                <Link
+                  href="/plans"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-700 hover:text-purple-600 dark:hover:text-purple-600 transition-colors"
+                >
+                  Planos
+                </Link>
+                <Link
+                  href="/ajuda"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-700 hover:text-purple-600 dark:hover:text-purple-600 transition-colors"
+                >
+                  Ajuda
+                </Link>
+              </div>
               {user ? (
                 <Link
                   href="/dashboard"
@@ -294,10 +333,23 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Courses Section */}
+      <FeaturedCoursesSection
+        courses={featuredCourses}
+        tiers={tiers}
+        isAuthenticated={isAuthenticated}
+      />
+
       {/* Shop Section */}
       <FeaturedProductsSection
         fileProducts={featuredFileProducts}
         products={featuredProducts}
+        isAuthenticated={isAuthenticated}
+      />
+
+      {/* Files Section */}
+      <FeaturedFilesSection
+        files={featuredFiles}
         isAuthenticated={isAuthenticated}
       />
 

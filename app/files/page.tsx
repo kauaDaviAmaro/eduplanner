@@ -1,9 +1,8 @@
-import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { isBuildTimeError } from '@/lib/auth/build-error'
 import { getCurrentUserProfile } from '@/lib/queries/profiles'
-import { getAllAttachments, type AttachmentWithContext } from '@/lib/queries/attachments'
-import { getAllCourses } from '@/lib/queries/courses'
+import { getAllAttachments, getPublicAttachments, type AttachmentWithContext } from '@/lib/queries/attachments'
+import { getAllCourses, getPublicCourses } from '@/lib/queries/courses'
 import { getAllTiers } from '@/lib/queries/courses'
 import { getAllTiers as getAllTiersFromSubscriptions } from '@/lib/queries/subscriptions'
 import { queryMany } from '@/lib/db/client'
@@ -11,6 +10,7 @@ import { getCurrentUserId } from '@/lib/auth/helpers'
 import { Navbar } from '@/components/layout/navbar'
 import { FilesFilters } from '@/components/files/files-filters'
 import { FileCard } from '@/components/files/file-card'
+import Link from 'next/link'
 
 type FileTypeFilter = 'all' | 'PDF' | 'PPT' | 'DOC' | 'XLS' | 'other'
 type SortOption = 'date' | 'name' | 'course'
@@ -33,16 +33,20 @@ export default async function FilesPage({ searchParams }: FilesPageProps) {
     if (!isBuildTimeError(error)) {
       console.warn('Session error (likely corrupted cookie):', error)
     }
-    redirect('/login?error=' + encodeURIComponent('Sessão inválida. Por favor, faça login novamente.'))
+    session = null
   }
 
-  if (!session?.user) {
-    redirect('/login')
-  }
+  const isAuthenticated = !!session?.user
+  let profile = null
+  let allTiers: Awaited<ReturnType<typeof getAllTiersFromSubscriptions>> = []
+  let isAdmin = false
 
-  const profile = await getCurrentUserProfile()
-  if (!profile) {
-    redirect('/login?error=' + encodeURIComponent('Perfil não encontrado'))
+  if (isAuthenticated && session?.user) {
+    profile = await getCurrentUserProfile()
+    if (profile) {
+      allTiers = await getAllTiersFromSubscriptions()
+      isAdmin = session.user.isAdmin || false
+    }
   }
 
   const params = await searchParams
@@ -52,13 +56,25 @@ export default async function FilesPage({ searchParams }: FilesPageProps) {
   const tierFilter = params.tier || 'all'
   const sortBy = (params.sort as SortOption) || 'date'
 
-  const [attachments, courses, tiers] = await Promise.all([
-    getAllAttachments(),
-    getAllCourses(),
-    getAllTiers(),
-  ])
+  // Get attachments and courses based on authentication status
+  const tiers = await getAllTiers()
+  
+  let attachments: AttachmentWithContext[] = []
+  let courses: Awaited<ReturnType<typeof getAllCourses>> = []
+  
+  if (isAuthenticated) {
+    [attachments, courses] = await Promise.all([
+      getAllAttachments(),
+      getAllCourses(),
+    ])
+  } else {
+    [attachments, courses] = await Promise.all([
+      getPublicAttachments(1000), // Get all public attachments
+      getPublicCourses(1000), // Get all public courses for filter
+    ])
+  }
 
-  const userId = await getCurrentUserId()
+  const userId = isAuthenticated ? await getCurrentUserId() : null
   const downloadedAttachments = userId
     ? await queryMany<{ attachment_id: string }>(
         `SELECT attachment_id FROM user_downloads WHERE user_id = $1`,
@@ -134,18 +150,88 @@ export default async function FilesPage({ searchParams }: FilesPageProps) {
     }
   })
 
-  const allTiers = await getAllTiersFromSubscriptions()
-  const isAdmin = session.user.isAdmin || false
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar 
-        userName={profile?.name || null} 
-        currentPath="/files"
-        isAdmin={isAdmin}
-        currentTierId={profile?.tier_id}
-        tiers={allTiers}
-      />
+      {isAuthenticated && profile ? (
+        <Navbar 
+          userName={profile.name || null} 
+          currentPath="/files"
+          isAdmin={isAdmin}
+          currentTierId={profile.tier_id}
+          tiers={allTiers}
+        />
+      ) : (
+        <nav className="border-b border-gray-200 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex h-16 items-center justify-between">
+              <Link href="/" className="flex items-center space-x-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600">
+                  <svg
+                    className="h-6 w-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                    />
+                  </svg>
+                </div>
+                <span className="text-xl font-bold text-gray-900">EduPlanner</span>
+              </Link>
+              <div className="flex items-center space-x-4">
+                <div className="hidden md:flex items-center space-x-6">
+                  <Link
+                    href="/courses"
+                    className="text-sm font-medium text-gray-700 hover:text-purple-600 transition-colors"
+                  >
+                    Cursos
+                  </Link>
+                  <Link
+                    href="/loja"
+                    className="text-sm font-medium text-gray-700 hover:text-purple-600 transition-colors"
+                  >
+                    Loja
+                  </Link>
+                  <Link
+                    href="/files"
+                    className="text-sm font-medium text-gray-700 hover:text-purple-600 transition-colors"
+                  >
+                    Biblioteca
+                  </Link>
+                  <Link
+                    href="/plans"
+                    className="text-sm font-medium text-gray-700 hover:text-purple-600 transition-colors"
+                  >
+                    Planos
+                  </Link>
+                  <Link
+                    href="/ajuda"
+                    className="text-sm font-medium text-gray-700 hover:text-purple-600 transition-colors"
+                  >
+                    Ajuda
+                  </Link>
+                </div>
+                <Link
+                  href="/login"
+                  className="text-sm font-medium text-gray-700 hover:text-purple-600 transition-colors"
+                >
+                  Entrar
+                </Link>
+                <Link
+                  href="/signup"
+                  className="rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:from-purple-700 hover:to-indigo-700"
+                >
+                  Começar grátis
+                </Link>
+              </div>
+            </div>
+          </div>
+        </nav>
+      )}
 
       {/* Main Content */}
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
@@ -157,7 +243,30 @@ export default async function FilesPage({ searchParams }: FilesPageProps) {
         </div>
 
         {/* Filters */}
-        <FilesFilters tiers={tiers} courses={courses} />
+        <FilesFilters tiers={tiers} courses={courses} isPublic={!isAuthenticated} />
+
+        {/* Login CTA for non-authenticated users */}
+        {!isAuthenticated && (
+          <div className="mb-6 rounded-xl bg-blue-50 border-2 border-blue-200 p-6 text-center">
+            <p className="text-base text-blue-900 mb-4 font-medium">
+              Faça login para visualizar e baixar os arquivos da biblioteca!
+            </p>
+            <div className="flex items-center justify-center gap-4">
+              <Link
+                href="/login?redirect=/files"
+                className="rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-3 text-sm font-semibold text-white hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+              >
+                Fazer Login
+              </Link>
+              <Link
+                href="/signup?redirect=/files"
+                className="rounded-lg border-2 border-purple-600 px-6 py-3 text-sm font-semibold text-purple-600 hover:bg-purple-50 transition-all"
+              >
+                Criar Conta
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Files Grid */}
         {sortedAttachments.length === 0 ? (
@@ -188,7 +297,8 @@ export default async function FilesPage({ searchParams }: FilesPageProps) {
               <FileCard
                 key={attachment.id}
                 attachment={attachment}
-                isDownloaded={downloadedIds.has(attachment.id)}
+                isDownloaded={isAuthenticated ? downloadedIds.has(attachment.id) : false}
+                isPublic={!isAuthenticated}
               />
             ))}
           </div>

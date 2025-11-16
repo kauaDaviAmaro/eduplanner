@@ -364,3 +364,40 @@ export async function getRecentDownloads(limit: number = 5): Promise<AttachmentW
   return attachments.map(({ downloaded_at, ...attachment }) => attachment)
 }
 
+/**
+ * Get public attachments for landing page (no authentication required)
+ * Returns all attachments without tier restrictions, excluding shop-only and bundle attachments
+ */
+export async function getPublicAttachments(limit: number = 10): Promise<AttachmentWithContext[]> {
+  const attachments = await queryMany<AttachmentWithContext>(
+    `SELECT 
+       a.id,
+       a.file_name,
+       a.file_type,
+       a.file_url,
+       a.minimum_tier_id,
+       a.created_at,
+       c.id as course_id,
+       c.title as course_title,
+       l.id as lesson_id,
+       l.title as lesson_title,
+       m.title as module_title,
+       t.name as tier_name,
+       t.permission_level as tier_permission_level
+     FROM attachments a
+     LEFT JOIN lessons l ON a.lesson_id = l.id
+     LEFT JOIN modules m ON l.module_id = m.id
+     LEFT JOIN courses c ON m.course_id = c.id
+     LEFT JOIN file_products fp ON a.id = fp.attachment_id
+     LEFT JOIN product_attachments pa ON a.id = pa.attachment_id
+     INNER JOIN tiers t ON a.minimum_tier_id = t.id
+     WHERE (fp.id IS NULL OR fp.is_shop_only = false)
+       AND pa.id IS NULL
+     ORDER BY a.created_at DESC
+     LIMIT $1`,
+    [limit]
+  )
+
+  return attachments
+}
+

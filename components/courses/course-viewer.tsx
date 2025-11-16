@@ -27,37 +27,47 @@ function ConfirmationModal({ isOpen, onClose, onConfirm, onCancel, progressPerce
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all animate-scaleIn">
-        <div className="p-6">
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Marcar como concluída?</h3>
-          <p className="text-gray-600 mb-4">
-            Você assistiu <span className="font-semibold text-purple-600">{Math.round(progressPercentage)}%</span> da aula <span className="font-medium">&quot;{lessonTitle}&quot;</span>.
-          </p>
-          <p className="text-sm text-gray-500 mb-6">
-            Deseja marcar esta aula como concluída antes de continuar?
-          </p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md animate-fadeIn">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all animate-scaleIn border border-gray-100">
+        <div className="p-8">
+          <div className="mb-6">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3 text-center">Marcar como concluída?</h3>
+            <p className="text-gray-600 mb-2 text-center">
+              Você assistiu <span className="font-bold text-purple-600">{Math.round(progressPercentage)}%</span> da aula
+            </p>
+            <p className="text-sm font-medium text-gray-800 mb-4 text-center">
+              &quot;{lessonTitle}&quot;
+            </p>
+            <p className="text-sm text-gray-500 text-center">
+              Deseja marcar esta aula como concluída antes de continuar?
+            </p>
+          </div>
           
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3">
             <button
               onClick={onConfirm}
-              className="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+              className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all transform hover:scale-[1.02] active:scale-[0.98] font-semibold shadow-lg shadow-purple-500/30"
             >
               Sim, marcar como concluída
             </button>
             <button
               onClick={onCancel}
-              className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all transform hover:scale-[1.02] active:scale-[0.98] font-medium"
             >
               Não, apenas navegar
             </button>
+            <button
+              onClick={onClose}
+              className="w-full px-4 py-2 text-gray-500 hover:text-gray-700 transition-colors text-sm font-medium"
+            >
+              Cancelar
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="w-full mt-3 px-4 py-2 text-gray-500 hover:text-gray-700 transition-colors text-sm"
-          >
-            Cancelar
-          </button>
         </div>
       </div>
     </div>
@@ -344,8 +354,9 @@ export function CourseViewer({ course, initialProgress }: CourseViewerProps) {
   if (!currentLessonId || !currentLesson) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <p className="text-gray-600">Carregando aula...</p>
+        <div className="text-center space-y-4">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600"></div>
+          <p className="text-gray-600 font-medium">Carregando aula...</p>
         </div>
       </div>
     )
@@ -353,20 +364,37 @@ export function CourseViewer({ course, initialProgress }: CourseViewerProps) {
 
   return (
     <div className="space-y-6">
-      {/* Course Progress Bar */}
+      {/* Course Progress Bar - Enhanced */}
       {courseProgress.total > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Progresso do Curso</span>
-            <span className="text-sm font-semibold text-purple-600">
-              {courseProgress.completed}/{courseProgress.total} aulas ({courseProgress.percentage}%)
-            </span>
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200/50 p-6 backdrop-blur-sm animate-fade-in">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <span className="text-sm font-semibold text-gray-900 block">Progresso do Curso</span>
+                <span className="text-xs text-gray-500">Continue aprendendo!</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-2xl font-bold text-purple-600 block">
+                {courseProgress.percentage}%
+              </span>
+              <span className="text-xs text-gray-500">
+                {courseProgress.completed}/{courseProgress.total} aulas
+              </span>
+            </div>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-3">
+          <div className="relative w-full bg-gray-100 rounded-full h-4 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full transition-all duration-300"
+              className="absolute inset-y-0 left-0 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 rounded-full transition-all duration-500 ease-out shadow-lg shadow-purple-500/30"
               style={{ width: `${courseProgress.percentage}%` }}
-            />
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+            </div>
           </div>
         </div>
       )}
@@ -374,75 +402,113 @@ export function CourseViewer({ course, initialProgress }: CourseViewerProps) {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Video Player Section */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Lesson Info */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs font-medium text-purple-600 bg-purple-50 px-2 py-1 rounded">
+        <div className="lg:col-span-2 space-y-6">
+          {/* Lesson Info Card - Enhanced */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200/50 p-6 backdrop-blur-sm animate-fade-in animate-delay-100 transform transition-all hover:shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold text-purple-700 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200">
                     {currentLesson.moduleTitle}
                   </span>
+                  {isCurrentLessonCompleted && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold text-green-700 bg-green-50 border border-green-200">
+                      <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      Concluída
+                    </span>
+                  )}
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">{currentLesson.title}</h2>
-                <p className="text-sm text-gray-600">
-                  Duração: {Math.floor(currentLesson.duration / 60)} minutos
-                </p>
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 leading-tight">
+                  {currentLesson.title}
+                </h2>
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="font-medium">{Math.floor(currentLesson.duration / 60)} minutos</span>
+                  </div>
+                  {currentLessonProgressPercentage > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                      <span className="font-medium">{Math.round(currentLessonProgressPercentage)}% assistido</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
           {/* Video Player */}
-          <div className={isLoadingLesson ? 'opacity-50 transition-opacity' : ''}>
-            <VideoPlayer
-              key={currentLessonId}
-              lessonId={currentLessonId}
-              title={undefined}
-              onProgressUpdate={handleProgressUpdate}
-              onTimeUpdate={handleTimeUpdate}
-              onEnded={handleVideoEnded}
-              initialTime={initialTime}
-            />
+          <div className={`relative transition-all duration-300 ${isLoadingLesson ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+            {isLoadingLesson && (
+              <div className="absolute inset-0 bg-gray-100 rounded-2xl flex items-center justify-center z-10 animate-pulse">
+                <div className="text-center space-y-3">
+                  <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-purple-200 border-t-purple-600"></div>
+                  <p className="text-sm text-gray-600 font-medium">Carregando vídeo...</p>
+                </div>
+              </div>
+            )}
+            <div className={`transform transition-all duration-300 ${isLoadingLesson ? 'scale-95' : 'scale-100'}`}>
+              <VideoPlayer
+                key={currentLessonId}
+                lessonId={currentLessonId}
+                title={undefined}
+                onProgressUpdate={handleProgressUpdate}
+                onTimeUpdate={handleTimeUpdate}
+                onEnded={handleVideoEnded}
+                initialTime={initialTime}
+              />
+            </div>
           </div>
 
-          {/* Complete Lesson Button */}
+          {/* Complete Lesson Button - Enhanced */}
           {!isCurrentLessonCompleted && (
-            <div className="flex justify-center">
+            <div className="flex justify-center animate-fade-in animate-delay-200">
               <button
                 onClick={handleCompleteLesson}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all transform hover:scale-105 shadow-lg font-medium"
+                className="group flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700 transition-all transform hover:scale-105 active:scale-95 shadow-xl shadow-purple-500/30 font-semibold text-base"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                <svg className="w-5 h-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                 </svg>
-                <span>Concluir Aula</span>
+                <span>Marcar Aula como Concluída</span>
               </button>
             </div>
           )}
 
-          {/* Success Toast */}
+          {/* Success Toast - Enhanced */}
           {showSuccessToast && (
-            <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-slideIn">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              <span>Aula marcada como concluída!</span>
+            <div className="fixed top-6 right-6 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-slideIn border border-green-400/30 backdrop-blur-sm">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-semibold">Aula concluída!</p>
+                <p className="text-xs text-green-50">Parabéns pelo progresso</p>
+              </div>
             </div>
           )}
 
-          {/* Navigation Buttons */}
-          <div className="flex items-center justify-between gap-4">
+          {/* Navigation Buttons - Enhanced */}
+          <div className="flex items-center justify-between gap-4 pt-2">
             <button
               onClick={() => previousLesson && handleLessonSelect(previousLesson.id)}
               disabled={!previousLesson}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`group flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${
                 previousLesson
-                  ? 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-purple-300 hover:shadow-md'
-                  : 'bg-gray-100 border border-gray-200 text-gray-400 cursor-not-allowed'
+                  ? 'bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-purple-300 hover:shadow-lg transform hover:scale-105 active:scale-95'
+                  : 'bg-gray-50 border-2 border-gray-100 text-gray-400 cursor-not-allowed'
               }`}
             >
               <svg
-                className="w-5 h-5"
+                className={`w-5 h-5 transition-transform ${previousLesson ? 'group-hover:-translate-x-1' : ''}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -450,7 +516,7 @@ export function CourseViewer({ course, initialProgress }: CourseViewerProps) {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
+                  strokeWidth={2.5}
                   d="M15 19l-7-7 7-7"
                 />
               </svg>
@@ -460,15 +526,15 @@ export function CourseViewer({ course, initialProgress }: CourseViewerProps) {
             <button
               onClick={handleNextLessonClick}
               disabled={!nextLesson}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`group flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${
                 nextLesson
-                  ? 'bg-purple-600 text-white hover:bg-purple-700 hover:shadow-lg transform hover:scale-105'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 hover:shadow-xl shadow-purple-500/30 transform hover:scale-105 active:scale-95'
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}
             >
               <span>Próxima Aula</span>
               <svg
-                className="w-5 h-5"
+                className={`w-5 h-5 transition-transform ${nextLesson ? 'group-hover:translate-x-1' : ''}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -476,7 +542,7 @@ export function CourseViewer({ course, initialProgress }: CourseViewerProps) {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
+                  strokeWidth={2.5}
                   d="M9 5l7 7-7 7"
                 />
               </svg>

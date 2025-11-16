@@ -10,12 +10,13 @@ type Tier = Database['public']['Tables']['tiers']['Row']
 interface FilesFiltersProps {
   tiers: Tier[]
   courses: Course[]
+  isPublic?: boolean
 }
 
 type FileTypeFilter = 'all' | 'PDF' | 'PPT' | 'DOC' | 'XLS' | 'other'
 type SortOption = 'date' | 'name' | 'course'
 
-export function FilesFilters({ tiers, courses }: FilesFiltersProps) {
+export function FilesFilters({ tiers, courses, isPublic = false }: FilesFiltersProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()

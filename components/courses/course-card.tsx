@@ -3,24 +3,28 @@
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import type { CourseWithProgress } from '@/lib/queries/dashboard'
+import type { Course } from '@/lib/queries/courses'
 import { toggleCourseFavorite } from '@/app/actions/courses'
 import type { Database } from '@/types/database'
 
 type Tier = Database['public']['Tables']['tiers']['Row']
 
 interface CourseCardProps {
-  course: CourseWithProgress
-  isFavorite: boolean
+  course: CourseWithProgress | Course
+  isFavorite?: boolean
   tier?: Tier | null
+  isPublic?: boolean
 }
 
-export function CourseCard({ course, isFavorite: initialIsFavorite, tier }: CourseCardProps) {
+export function CourseCard({ course, isFavorite: initialIsFavorite = false, tier, isPublic = false }: CourseCardProps) {
   const [isFavorite, setIsFavorite] = useState(initialIsFavorite)
   const [isPending, startTransition] = useTransition()
 
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+
+    if (isPublic) return
 
     startTransition(async () => {
       const result = await toggleCourseFavorite(course.id)
@@ -30,7 +34,8 @@ export function CourseCard({ course, isFavorite: initialIsFavorite, tier }: Cour
     })
   }
 
-  const hasProgress = course.progress.total > 0
+  const hasProgress = !isPublic && 'progress' in course && course.progress.total > 0
+  const progress = 'progress' in course ? course.progress : { completed: 0, total: 0, percentage: 0 }
 
   return (
     <div className="group bg-white rounded-lg border border-gray-200 hover:border-purple-300 hover:shadow-lg transition-all overflow-hidden relative">
@@ -43,17 +48,18 @@ export function CourseCard({ course, isFavorite: initialIsFavorite, tier }: Cour
               alt={course.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
-            {/* Favorite Button - Overlay on Thumbnail */}
-            <button
-              onClick={handleToggleFavorite}
-              disabled={isPending}
-              className={`absolute top-3 right-3 p-2.5 rounded-full shadow-lg backdrop-blur-sm transition-all transform hover:scale-110 z-10 ${
-                isFavorite
-                  ? 'bg-yellow-400/90 hover:bg-yellow-400'
-                  : 'bg-white/80 hover:bg-white'
-              } ${isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
-              aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
-            >
+            {/* Favorite Button - Overlay on Thumbnail (only if not public) */}
+            {!isPublic && (
+              <button
+                onClick={handleToggleFavorite}
+                disabled={isPending}
+                className={`absolute top-3 right-3 p-2.5 rounded-full shadow-lg backdrop-blur-sm transition-all transform hover:scale-110 z-10 ${
+                  isFavorite
+                    ? 'bg-yellow-400/90 hover:bg-yellow-400'
+                    : 'bg-white/80 hover:bg-white'
+                } ${isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
+                aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+              >
               {isFavorite ? (
                 <svg
                   className="h-6 w-6 text-yellow-600 fill-current"
@@ -77,7 +83,8 @@ export function CourseCard({ course, isFavorite: initialIsFavorite, tier }: Cour
                   />
                 </svg>
               )}
-            </button>
+              </button>
+            )}
           </div>
         ) : (
           <div className="w-full h-40 bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center relative">
@@ -94,17 +101,18 @@ export function CourseCard({ course, isFavorite: initialIsFavorite, tier }: Cour
                 d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
               />
             </svg>
-            {/* Favorite Button - Overlay on Placeholder */}
-            <button
-              onClick={handleToggleFavorite}
-              disabled={isPending}
-              className={`absolute top-3 right-3 p-2.5 rounded-full shadow-lg backdrop-blur-sm transition-all transform hover:scale-110 z-10 ${
-                isFavorite
-                  ? 'bg-yellow-400/90 hover:bg-yellow-400'
-                  : 'bg-white/80 hover:bg-white'
-              } ${isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
-              aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
-            >
+            {/* Favorite Button - Overlay on Placeholder (only if not public) */}
+            {!isPublic && (
+              <button
+                onClick={handleToggleFavorite}
+                disabled={isPending}
+                className={`absolute top-3 right-3 p-2.5 rounded-full shadow-lg backdrop-blur-sm transition-all transform hover:scale-110 z-10 ${
+                  isFavorite
+                    ? 'bg-yellow-400/90 hover:bg-yellow-400'
+                    : 'bg-white/80 hover:bg-white'
+                } ${isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
+                aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+              >
               {isFavorite ? (
                 <svg
                   className="h-6 w-6 text-yellow-600 fill-current"
@@ -128,7 +136,8 @@ export function CourseCard({ course, isFavorite: initialIsFavorite, tier }: Cour
                   />
                 </svg>
               )}
-            </button>
+              </button>
+            )}
           </div>
         )}
 
@@ -144,19 +153,19 @@ export function CourseCard({ course, isFavorite: initialIsFavorite, tier }: Cour
             <p className="text-sm text-gray-600 mb-3 line-clamp-2">{course.description}</p>
           )}
 
-          {/* Progress Bar */}
+          {/* Progress Bar (only if not public and has progress) */}
           {hasProgress && (
             <div className="mb-3">
               <div className="flex items-center justify-between text-xs mb-1">
                 <span className="text-gray-600">
-                  {course.progress.completed}/{course.progress.total} aulas
+                  {progress.completed}/{progress.total} aulas
                 </span>
-                <span className="font-semibold text-purple-600">{course.progress.percentage}%</span>
+                <span className="font-semibold text-purple-600">{progress.percentage}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
                   className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full transition-all"
-                  style={{ width: `${course.progress.percentage}%` }}
+                  style={{ width: `${progress.percentage}%` }}
                 />
               </div>
             </div>
@@ -171,8 +180,8 @@ export function CourseCard({ course, isFavorite: initialIsFavorite, tier }: Cour
             </div>
           )}
 
-          {/* No Progress Indicator */}
-          {!hasProgress && (
+          {/* No Progress Indicator (only if not public) */}
+          {!isPublic && !hasProgress && (
             <div className="mt-2 text-xs text-gray-500">Curso disponível</div>
           )}
         </div>

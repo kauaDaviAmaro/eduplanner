@@ -3,9 +3,16 @@ import { isBuildTimeError } from '@/lib/auth/build-error'
 import { getCurrentUserProfile } from '@/lib/queries/profiles'
 import { getAllTiers } from '@/lib/queries/subscriptions'
 import { getUserTickets } from '@/lib/queries/support'
+import { getPublicCourses, getAllTiers as getAllTiersFromCourses } from '@/lib/queries/courses'
+import { getPublicAttachments } from '@/lib/queries/attachments'
+import { getFileProductsWithPurchaseStatus } from '@/lib/queries/file-products'
+import { getProductsWithPurchaseStatus } from '@/lib/queries/products'
 import { Navbar } from '@/components/layout/navbar'
 import { ContactForm } from '@/components/support/contact-form'
 import { TicketsList } from '@/components/support/tickets-list'
+import { FeaturedCoursesSection } from '@/components/courses/featured-courses-section'
+import { FeaturedProductsSection } from '@/components/shop/featured-products-section'
+import { FeaturedFilesSection } from '@/components/files/featured-files-section'
 import Link from 'next/link'
 
 interface SupportPageProps {
@@ -43,6 +50,35 @@ export default async function SupportPage({ searchParams }: SupportPageProps) {
     }
   }
 
+  // Get featured content for landing page
+  let featuredFileProducts: Awaited<ReturnType<typeof getFileProductsWithPurchaseStatus>> = []
+  let featuredProducts: Awaited<ReturnType<typeof getProductsWithPurchaseStatus>> = []
+  let featuredCourses: Awaited<ReturnType<typeof getPublicCourses>> = []
+  let featuredFiles: Awaited<ReturnType<typeof getPublicAttachments>> = []
+  let tiers: Awaited<ReturnType<typeof getAllTiersFromCourses>> = []
+  
+  try {
+    const [allFileProducts, allProducts, publicCourses, publicFiles, allTiersFromCourses] = await Promise.all([
+      getFileProductsWithPurchaseStatus(),
+      getProductsWithPurchaseStatus(),
+      getPublicCourses(10),
+      getPublicAttachments(10),
+      getAllTiersFromCourses(),
+    ])
+
+    // Get first 4 active products of each type
+    featuredFileProducts = allFileProducts.filter(p => p.is_active).slice(0, 4)
+    featuredProducts = allProducts.filter(p => p.is_active).slice(0, 4)
+    featuredCourses = publicCourses
+    featuredFiles = publicFiles
+    tiers = allTiersFromCourses
+  } catch (error) {
+    // If database is not available during build, just show empty content
+    console.warn('Could not load content for support page:', error)
+  }
+  
+  const isAuthenticated = !!session?.user
+
   return (
     <div className="min-h-screen bg-gray-50">
       {session?.user && profile ? (
@@ -76,6 +112,38 @@ export default async function SupportPage({ searchParams }: SupportPageProps) {
                 <span className="text-xl font-bold text-gray-900">EduPlanner</span>
               </Link>
               <div className="flex items-center space-x-4">
+                <div className="hidden md:flex items-center space-x-6">
+                  <Link
+                    href="/courses"
+                    className="text-sm font-medium text-gray-700 hover:text-purple-600 transition-colors"
+                  >
+                    Cursos
+                  </Link>
+                  <Link
+                    href="/loja"
+                    className="text-sm font-medium text-gray-700 hover:text-purple-600 transition-colors"
+                  >
+                    Loja
+                  </Link>
+                  <Link
+                    href="/files"
+                    className="text-sm font-medium text-gray-700 hover:text-purple-600 transition-colors"
+                  >
+                    Biblioteca
+                  </Link>
+                  <Link
+                    href="/plans"
+                    className="text-sm font-medium text-gray-700 hover:text-purple-600 transition-colors"
+                  >
+                    Planos
+                  </Link>
+                  <Link
+                    href="/ajuda"
+                    className="text-sm font-medium text-gray-700 hover:text-purple-600 transition-colors"
+                  >
+                    Ajuda
+                  </Link>
+                </div>
                 <Link
                   href="/login"
                   className="text-sm font-medium text-gray-700 hover:text-purple-600 transition-colors"
@@ -242,6 +310,26 @@ export default async function SupportPage({ searchParams }: SupportPageProps) {
           </div>
         )}
       </main>
+
+      {/* Courses Section */}
+      <FeaturedCoursesSection
+        courses={featuredCourses}
+        tiers={tiers}
+        isAuthenticated={isAuthenticated}
+      />
+
+      {/* Shop Section */}
+      <FeaturedProductsSection
+        fileProducts={featuredFileProducts}
+        products={featuredProducts}
+        isAuthenticated={isAuthenticated}
+      />
+
+      {/* Files Section */}
+      <FeaturedFilesSection
+        files={featuredFiles}
+        isAuthenticated={isAuthenticated}
+      />
     </div>
   )
 }

@@ -8,12 +8,13 @@ type Tier = Database['public']['Tables']['tiers']['Row']
 
 interface CoursesFiltersProps {
   tiers: Tier[]
+  isPublic?: boolean
 }
 
 type ProgressFilter = 'all' | 'in-progress' | 'not-started' | 'completed'
 type SortOption = 'date' | 'title' | 'progress'
 
-export function CoursesFilters({ tiers }: CoursesFiltersProps) {
+export function CoursesFilters({ tiers, isPublic = false }: CoursesFiltersProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
@@ -76,24 +77,26 @@ export function CoursesFilters({ tiers }: CoursesFiltersProps) {
         </div>
 
         {/* Filters Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Progress Filter */}
-          <div>
-            <label htmlFor="progress" className="block text-sm font-medium text-gray-700 mb-2">
-              Progresso
-            </label>
-            <select
-              id="progress"
-              value={progressFilter}
-              onChange={(e) => setProgressFilter(e.target.value as ProgressFilter)}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-            >
-              <option value="all">Todos</option>
-              <option value="in-progress">Em Progresso</option>
-              <option value="not-started">Não Iniciados</option>
-              <option value="completed">Completos</option>
-            </select>
-          </div>
+        <div className={`grid grid-cols-1 ${isPublic ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
+          {/* Progress Filter - Only show if authenticated */}
+          {!isPublic && (
+            <div>
+              <label htmlFor="progress" className="block text-sm font-medium text-gray-700 mb-2">
+                Progresso
+              </label>
+              <select
+                id="progress"
+                value={progressFilter}
+                onChange={(e) => setProgressFilter(e.target.value as ProgressFilter)}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
+              >
+                <option value="all">Todos</option>
+                <option value="in-progress">Em Progresso</option>
+                <option value="not-started">Não Iniciados</option>
+                <option value="completed">Completos</option>
+              </select>
+            </div>
+          )}
 
           {/* Tier Filter */}
           <div>
@@ -128,7 +131,7 @@ export function CoursesFilters({ tiers }: CoursesFiltersProps) {
             >
               <option value="date">Data (mais recente)</option>
               <option value="title">Título (A-Z)</option>
-              <option value="progress">Progresso</option>
+              {!isPublic && <option value="progress">Progresso</option>}
             </select>
           </div>
         </div>

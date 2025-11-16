@@ -1,17 +1,17 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState } from 'react'
 import type { AttachmentWithContext } from '@/lib/queries/attachments'
 import { FilePreviewModal } from './file-preview-modal'
 
 interface FileCardProps {
   attachment: AttachmentWithContext
   isDownloaded?: boolean
+  isPublic?: boolean
 }
 
-export function FileCard({ attachment, isDownloaded = false }: FileCardProps) {
+export function FileCard({ attachment, isDownloaded = false, isPublic = false }: FileCardProps) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
-  const [isPending, startTransition] = useTransition()
 
   const getFileIcon = (fileType: string) => {
     const type = fileType.toUpperCase()
@@ -53,6 +53,7 @@ export function FileCard({ attachment, isDownloaded = false }: FileCardProps) {
   }
 
   const handleOpenPreview = () => {
+    if (isPublic) return
     setIsPreviewOpen(true)
   }
 
@@ -65,7 +66,7 @@ export function FileCard({ attachment, isDownloaded = false }: FileCardProps) {
 
   return (
     <>
-      <div className="bg-white rounded-lg border border-gray-200 hover:border-purple-300 hover:shadow-lg transition-all p-6 cursor-pointer" onClick={handleOpenPreview}>
+      <div className={`bg-white rounded-lg border border-gray-200 hover:border-purple-300 hover:shadow-lg transition-all p-6 ${!isPublic ? 'cursor-pointer' : ''}`} onClick={!isPublic ? handleOpenPreview : undefined}>
         <div className="flex items-start space-x-4">
           {/* File Icon */}
           <div className="flex-shrink-0">{getFileIcon(attachment.file_type)}</div>
@@ -103,53 +104,57 @@ export function FileCard({ attachment, isDownloaded = false }: FileCardProps) {
                 {attachment.tier_name}
               </span>
               <span className="text-xs text-gray-500">• {attachment.file_type}</span>
-              {isDownloaded && (
+              {!isPublic && isDownloaded && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                   Baixado
                 </span>
               )}
             </div>
 
-            {/* Preview Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                handleOpenPreview()
-              }}
-              className="w-full sm:w-auto px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2"
-            >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            {/* Preview Button (only if not public) */}
+            {!isPublic && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleOpenPreview()
+                }}
+                className="w-full sm:w-auto px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                />
-              </svg>
-              <span>Visualizar</span>
-            </button>
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                  />
+                </svg>
+                <span>Visualizar</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Preview Modal */}
-      <FilePreviewModal
-        attachment={attachment}
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-        onDownload={handleDownloadComplete}
-      />
+      {/* Preview Modal (only if not public) */}
+      {!isPublic && (
+        <FilePreviewModal
+          attachment={attachment}
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          onDownload={handleDownloadComplete}
+        />
+      )}
     </>
   )
 }
