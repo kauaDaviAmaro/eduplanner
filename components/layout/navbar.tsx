@@ -19,6 +19,7 @@ export function Navbar({ userName, currentPath, isAdmin = false, currentTierId, 
   const isFiles = currentPath === '/files'
   const isProfile = currentPath === '/profile'
   const isPlansPage = isPlans(currentPath)
+  const isLoja = currentPath === '/loja' || (currentPath?.startsWith('/loja/') ?? false)
   const isHelp = currentPath === '/ajuda'
 
   return (
@@ -85,6 +86,16 @@ export function Navbar({ userName, currentPath, isAdmin = false, currentTierId, 
               Planos
             </Link>
             <Link
+              href="/loja"
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                isLoja
+                  ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                  : 'text-gray-700 hover:text-purple-600 hover:bg-gray-50'
+              }`}
+            >
+              Loja
+            </Link>
+            <Link
               href="/ajuda"
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                 isHelp
@@ -94,6 +105,18 @@ export function Navbar({ userName, currentPath, isAdmin = false, currentTierId, 
             >
               Ajuda
             </Link>
+            {isAdmin && (
+              <Link
+                href="/admin/loja"
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                  currentPath?.startsWith('/admin/loja')
+                    ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                    : 'text-gray-700 hover:text-purple-600 hover:bg-gray-50'
+                }`}
+              >
+                Admin Loja
+              </Link>
+            )}
             {isAdmin && currentTierId && tiers.length > 0 && (
               <TierSelector tiers={tiers} currentTierId={currentTierId} />
             )}

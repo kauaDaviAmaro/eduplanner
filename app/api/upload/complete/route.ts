@@ -40,9 +40,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    if (!['video', 'attachment', 'thumbnail'].includes(fileType)) {
+    if (!['video', 'attachment', 'thumbnail', 'product-thumbnail'].includes(fileType)) {
       return NextResponse.json(
-        { error: 'fileType must be video, attachment, or thumbnail' },
+        { error: 'fileType must be video, attachment, thumbnail, or product-thumbnail' },
         { status: 400 }
       )
     }
@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
           finalBucket = BUCKETS.ATTACHMENTS
           break
         case 'thumbnail':
+        case 'product-thumbnail':
           finalBucket = BUCKETS.THUMBNAILS
           break
         default:
@@ -147,11 +148,19 @@ export async function POST(request: NextRequest) {
         fileUrl,
         storageKey,
       })
-    } else {
+    } else if (fileType === 'thumbnail') {
       // thumbnail - just return success, thumbnail_url is updated separately via course update
       return NextResponse.json({
         success: true,
         message: 'Thumbnail upload confirmed',
+        fileUrl,
+        storageKey,
+      })
+    } else {
+      // product-thumbnail - just return success, thumbnail_url is updated separately via product update
+      return NextResponse.json({
+        success: true,
+        message: 'Product thumbnail upload confirmed',
         fileUrl,
         storageKey,
       })

@@ -7,6 +7,14 @@ import {
   getSubscriptionByStripeId,
   updateUserTier,
 } from '@/lib/queries/subscriptions'
+import {
+  createFilePurchase,
+  getFilePurchaseByPaymentIntentId,
+} from '@/lib/queries/file-products'
+import {
+  createProductPurchase,
+  getProductPurchaseByPaymentIntentId,
+} from '@/lib/queries/products'
 import Stripe from 'stripe'
 
 export const runtime = 'nodejs'
@@ -45,7 +53,7 @@ export async function POST(request: NextRequest) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
 
-        // Only handle subscription checkouts
+        // Handle subscription checkouts
         if (session.mode === 'subscription' && session.subscription) {
           const subscription = await stripe.subscriptions.retrieve(
             session.subscription as string
@@ -78,6 +86,115 @@ export async function POST(request: NextRequest) {
 
             // Update user tier
             await updateUserTier(userId, parseInt(tierId, 10))
+          }
+        }
+        // Handle one-time payment checkouts (file products and bundles)
+        else if (session.mode === 'payment' && session.payment_intent) {
+          const paymentIntent = await stripe.paymentIntents.retrieve(
+            session.payment_intent as string
+          )
+
+          // Only process if payment was successful
+          if (paymentIntent.status !== 'succeeded') {
+            break
+          }
+
+          const userId = session.metadata?.userId
+          const type = session.metadata?.type
+
+          if (!userId) {
+            console.error('Missing userId in session metadata')
+            break
+          }
+
+          const amountPaid = paymentIntent.amount / 100 // Convert from cents
+
+          // Handle file product purchase
+          if (type === 'file_product') {
+            const fileProductId = session.metadata?.fileProductId
+            if (!fileProductId) {
+              console.error('Missing fileProductId in session metadata')
+              break
+            }
+
+            // Check if purchase already exists
+            const existingPurchase = await getFilePurchaseByPaymentIntentId(paymentIntent.id)
+            if (!existingPurchase) {
+              await createFilePurchase(userId, fileProductId, paymentIntent.id, amountPaid)
+            }
+          }
+          // Handle bundle purchase
+          else if (type === 'product') {
+            const productId = session.metadata?.productId
+            if (!productId) {
+              console.error('Missing productId in session metadata')
+              break
+            }
+
+            // Check if purchase already exists
+            const existingPurchase = await getProductPurchaseByPaymentIntentId(paymentIntent.id)
+            if (!existingPurchase) {
+              await createProductPurchase(userId, productId, paymentIntent.id, amountPaid)
+            }
+          }
+        }
+        break
+      }
+
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent
+
+        // Get the checkout session from payment intent metadata
+        const sessionId = paymentIntent.metadata?.session_id
+        if (!sessionId) {
+          // If no session_id, try to find purchase by payment intent ID
+          const filePurchase = await getFilePurchaseByPaymentIntentId(paymentIntent.id)
+          const productPurchase = await getProductPurchaseByPaymentIntentId(paymentIntent.id)
+          
+          if (!filePurchase && !productPurchase) {
+            console.log('Payment intent succeeded but no matching purchase found')
+          }
+          break
+        }
+
+        // Retrieve the session to get metadata
+        const session = await stripe.checkout.sessions.retrieve(sessionId)
+        const userId = session.metadata?.userId
+        const type = session.metadata?.type
+
+        if (!userId) {
+          console.error('Missing userId in session metadata')
+          break
+        }
+
+        const amountPaid = paymentIntent.amount / 100 // Convert from cents
+
+        // Handle file product purchase
+        if (type === 'file_product') {
+          const fileProductId = session.metadata?.fileProductId
+          if (!fileProductId) {
+            console.error('Missing fileProductId in session metadata')
+            break
+          }
+
+          // Check if purchase already exists
+          const existingPurchase = await getFilePurchaseByPaymentIntentId(paymentIntent.id)
+          if (!existingPurchase) {
+            await createFilePurchase(userId, fileProductId, paymentIntent.id, amountPaid)
+          }
+        }
+        // Handle bundle purchase
+        else if (type === 'product') {
+          const productId = session.metadata?.productId
+          if (!productId) {
+            console.error('Missing productId in session metadata')
+            break
+          }
+
+          // Check if purchase already exists
+          const existingPurchase = await getProductPurchaseByPaymentIntentId(paymentIntent.id)
+          if (!existingPurchase) {
+            await createProductPurchase(userId, productId, paymentIntent.id, amountPaid)
           }
         }
         break

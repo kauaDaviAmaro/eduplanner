@@ -398,6 +398,154 @@ export interface Database {
           updated_at?: string
         }
       }
+      file_products: {
+        Row: {
+          id: string
+          attachment_id: string
+          title: string
+          description: string | null
+          price: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          attachment_id: string
+          title: string
+          description?: string | null
+          price: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          attachment_id?: string
+          title?: string
+          description?: string | null
+          price?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      products: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          price: number
+          thumbnail_url: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          price: number
+          thumbnail_url?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          price?: number
+          thumbnail_url?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      product_attachments: {
+        Row: {
+          id: string
+          product_id: string
+          attachment_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          attachment_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          attachment_id?: string
+          created_at?: string
+        }
+      }
+      file_purchases: {
+        Row: {
+          id: string
+          user_id: string
+          file_product_id: string
+          stripe_payment_intent_id: string
+          amount_paid: number
+          purchased_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          file_product_id: string
+          stripe_payment_intent_id: string
+          amount_paid: number
+          purchased_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          file_product_id?: string
+          stripe_payment_intent_id?: string
+          amount_paid?: number
+          purchased_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      product_purchases: {
+        Row: {
+          id: string
+          user_id: string
+          product_id: string
+          stripe_payment_intent_id: string
+          amount_paid: number
+          purchased_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          product_id: string
+          stripe_payment_intent_id: string
+          amount_paid: number
+          purchased_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          product_id?: string
+          stripe_payment_intent_id?: string
+          amount_paid?: number
+          purchased_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

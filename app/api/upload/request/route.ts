@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { filename, lessonId, attachmentId, fileType, contentType, courseId } = body
+    const { filename, lessonId, attachmentId, fileType, contentType, courseId, productId } = body
 
     // Validate input
     if (!filename || !fileType) {
@@ -39,9 +39,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    if (!['video', 'attachment', 'thumbnail'].includes(fileType)) {
+    if (!['video', 'attachment', 'thumbnail', 'product-thumbnail'].includes(fileType)) {
       return NextResponse.json(
-        { error: 'fileType must be video, attachment, or thumbnail' },
+        { error: 'fileType must be video, attachment, thumbnail, or product-thumbnail' },
         { status: 400 }
       )
     }
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         )
       }
-    } else if (fileType === 'thumbnail') {
+    } else if (fileType === 'thumbnail' || fileType === 'product-thumbnail') {
       const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp']
       if (!allowedExtensions.includes(extension)) {
         return NextResponse.json(
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate resource ID based on file type
-    let resourceId: string
+    let resourceId: string | undefined
     let finalCourseId: string | null = courseId || null
 
     if (fileType === 'video') {
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
 
       resourceId = attachmentId
       finalCourseId = attachment.course_id
-    } else {
+    } else if (fileType === 'thumbnail') {
       // thumbnail
       if (!courseId) {
         return NextResponse.json(
@@ -171,6 +171,35 @@ export async function POST(request: NextRequest) {
 
       resourceId = courseId
       finalCourseId = courseId
+    } else if (fileType === 'product-thumbnail') {
+      // For product thumbnails, productId is optional (can be created before product exists)
+      if (productId) {
+        // Verify product exists if productId is provided
+        const product = await queryOne<{ id: string }>(
+          'SELECT id FROM products WHERE id = $1',
+          [productId]
+        )
+        if (!product) {
+          return NextResponse.json(
+            { error: 'Product not found' },
+            { status: 404 }
+          )
+        }
+        resourceId = productId
+      } else {
+        // Allow upload without productId for new products
+        resourceId = 'temp'
+      }
+      // Use a fixed identifier for product thumbnails
+      finalCourseId = 'products'
+    }
+
+    // Verify resourceId was assigned
+    if (resourceId === undefined) {
+      return NextResponse.json(
+        { error: 'Invalid file type or missing required parameters' },
+        { status: 400 }
+      )
     }
 
     // For attachments without course, use a default courseId for storage organization
@@ -195,6 +224,7 @@ export async function POST(request: NextRequest) {
         bucket = BUCKETS.ATTACHMENTS
         break
       case 'thumbnail':
+      case 'product-thumbnail':
         bucket = BUCKETS.THUMBNAILS
         break
       default:

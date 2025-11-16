@@ -7,9 +7,27 @@ const useSSL = process.env.MINIO_USE_SSL === 'true'
 const accessKeyId = process.env.MINIO_ACCESS_KEY || process.env.MINIO_ROOT_USER || 'minioadmin'
 const secretAccessKey = process.env.MINIO_SECRET_KEY || process.env.MINIO_ROOT_PASSWORD || 'minioadmin'
 
+// Public endpoint for browser-accessible URLs (presigned URLs)
+// Use MINIO_PUBLIC_ENDPOINT if set, otherwise fall back to localhost
+const publicEndpoint = process.env.MINIO_PUBLIC_ENDPOINT || 'localhost'
+const publicPort = process.env.MINIO_PUBLIC_PORT ? parseInt(process.env.MINIO_PUBLIC_PORT, 10) : port
+
+// S3Client for server-side operations (uses internal endpoint)
 const s3Client = new S3Client({
   endpoint: `${useSSL ? 'https' : 'http'}://${endpoint}:${port}`,
   region: 'us-east-1', // MinIO doesn't care about region, but SDK requires it
+  credentials: {
+    accessKeyId,
+    secretAccessKey,
+  },
+  forcePathStyle: true,
+})
+
+// S3Client for generating presigned URLs (uses public endpoint)
+// This ensures the signature is calculated with the correct hostname
+const publicS3Client = new S3Client({
+  endpoint: `${useSSL ? 'https' : 'http'}://${publicEndpoint}:${publicPort}`,
+  region: 'us-east-1',
   credentials: {
     accessKeyId,
     secretAccessKey,
@@ -100,6 +118,7 @@ export async function fileExists(bucket: string, key: string): Promise<boolean> 
 
 /**
  * Generate a presigned URL for temporary access (useful for private files)
+ * Uses the public S3Client to ensure the signature is calculated with the correct hostname
  */
 export async function getPresignedUrl(
   bucket: string,
@@ -111,12 +130,14 @@ export async function getPresignedUrl(
     Key: key,
   })
 
-  return await getSignedUrl(s3Client, command, { expiresIn })
+  // Use publicS3Client to generate URLs with the correct hostname for browser access
+  return await getSignedUrl(publicS3Client, command, { expiresIn })
 }
 
 /**
  * Generate a presigned URL for uploading a file (PUT operation)
  * This allows direct upload from browser to MinIO without going through Next.js server
+ * Uses the public S3Client to ensure the signature is calculated with the correct hostname
  */
 export async function getPresignedUploadUrl(
   bucket: string,
@@ -130,16 +151,18 @@ export async function getPresignedUploadUrl(
     ContentType: contentType,
   })
 
-  return await getSignedUrl(s3Client, command, { expiresIn })
+  // Use publicS3Client to generate URLs with the correct hostname for browser access
+  return await getSignedUrl(publicS3Client, command, { expiresIn })
 }
 
 /**
  * Generate a unique storage key for a file
  * Format: course-{courseId}/lesson-{lessonId}/{sanitized-filename}-{timestamp}.{ext}
  * or: course-{courseId}/attachment-{attachmentId}/{sanitized-filename}-{timestamp}.{ext}
+ * or: products/product-{productId}/{sanitized-filename}-{timestamp}.{ext} (for product-thumbnail)
  */
 export function generateStorageKey(
-  type: 'video' | 'attachment' | 'thumbnail',
+  type: 'video' | 'attachment' | 'thumbnail' | 'product-thumbnail',
   filename: string,
   courseId: string,
   resourceId: string,
@@ -170,12 +193,20 @@ export function generateStorageKey(
       prefix = `course-${courseId}`
       bucketPrefix = ''
       break
+    case 'product-thumbnail':
+      prefix = `product-${resourceId}`
+      bucketPrefix = 'products/'
+      break
     default:
       prefix = `resource-${resourceId}`
       bucketPrefix = ''
   }
 
   const nameWithoutExt = sanitized.replace(/\.[^/.]+$/, '')
+  
+  if (type === 'product-thumbnail') {
+    return `${bucketPrefix}${prefix}/${nameWithoutExt}-${ts}.${ext}`
+  }
   
   return `course-${courseId}/${prefix}/${nameWithoutExt}-${ts}.${ext}`
 }
@@ -186,7 +217,7 @@ export function generateStorageKey(
  */
 export function getFileUrl(bucket: string, key: string): string {
   const protocol = useSSL ? 'https' : 'http'
-  return `${protocol}://${endpoint}:${port}/${bucket}/${key}`
+  return `${protocol}://${publicEndpoint}:${publicPort}/${bucket}/${key}`
 }
 
 export async function uploadVideo(

@@ -55,6 +55,10 @@ services:
       /usr/bin/mc mb myminio/videos --ignore-existing;
       /usr/bin/mc mb myminio/attachments --ignore-existing;
       /usr/bin/mc mb myminio/thumbnails --ignore-existing;
+      printf '{\"CORSRules\":[{\"AllowedOrigins\":[\"*\"],\"AllowedMethods\":[\"GET\",\"PUT\",\"POST\",\"DELETE\",\"HEAD\"],\"AllowedHeaders\":[\"*\"],\"ExposeHeaders\":[\"ETag\",\"x-amz-server-side-encryption\",\"x-amz-request-id\",\"x-amz-id-2\"],\"MaxAgeSeconds\":3000}]}' > /tmp/cors.json;
+      /usr/bin/mc cors import myminio/videos < /tmp/cors.json;
+      /usr/bin/mc cors import myminio/attachments < /tmp/cors.json;
+      /usr/bin/mc cors import myminio/thumbnails < /tmp/cors.json;
       exit 0;
       "
     networks:
@@ -75,6 +79,8 @@ services:
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-${AUTH_SECRET:-changeme-me-super-hard-secret}}
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost}
+      MINIO_PUBLIC_PORT: ${MINIO_PUBLIC_PORT:-9000}
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       MINIO_USE_SSL: "false"

@@ -1,12 +1,15 @@
 import { queryOne, queryMany } from '@/lib/db/client'
 import { getCurrentUserId, getPermissionLevel, isAdmin } from '@/lib/auth/helpers'
 import { hasCourseAccess } from './courses'
+import { hasPurchasedAttachment } from './file-products'
+import { getUserPurchasedBundleAttachmentIds } from './products'
 
 /**
  * Check if user has access to an attachment
  * Returns true if:
- * 1. If attachment has a course: User has access to the course that contains this attachment
- * 2. User's permission_level >= attachment's minimum_tier permission_level
+ * 1. User purchased the attachment (via file_product or bundle)
+ * 2. If attachment has a course: User has access to the course that contains this attachment
+ * 3. User's permission_level >= attachment's minimum_tier permission_level
  * For attachments without course, only tier check is performed
  */
 export async function hasAttachmentAccess(attachmentId: string): Promise<boolean> {
@@ -19,6 +22,18 @@ export async function hasAttachmentAccess(attachmentId: string): Promise<boolean
   }
 
   if (userIsAdmin) {
+    return true
+  }
+
+  // First check if user purchased this attachment (purchased files are always accessible)
+  const hasPurchased = await hasPurchasedAttachment(attachmentId, userId)
+  if (hasPurchased) {
+    return true
+  }
+
+  // Check if user purchased via bundle
+  const purchasedBundleAttachments = await getUserPurchasedBundleAttachmentIds(userId)
+  if (purchasedBundleAttachments.includes(attachmentId)) {
     return true
   }
 
@@ -106,7 +121,7 @@ export async function canDownloadAttachment(attachmentId: string): Promise<{
   // Check if user has access to the attachment
   const hasAccess = await hasAttachmentAccess(attachmentId)
   if (!hasAccess) {
-    return { canDownload: false, reason: 'Você não tem acesso a este anexo. Faça upgrade do seu plano.' }
+    return { canDownload: false, reason: 'Você não tem acesso a este anexo. Faça upgrade do seu plano ou compre o arquivo na loja.' }
   }
 
   // Get user's download limit
