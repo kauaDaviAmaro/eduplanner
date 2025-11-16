@@ -7,68 +7,132 @@ import { TierSelector } from './tier-selector'
 import type { Tier } from '@/lib/queries/subscriptions'
 
 interface NavbarProps {
-  userName: string | null
-  currentPath?: string
-  isAdmin?: boolean
-  currentTierId?: number
-  tiers?: Tier[]
+  readonly userName: string | null
+  readonly currentPath?: string
+  readonly isAdmin?: boolean
+  readonly currentTierId?: number
+  readonly tiers?: Tier[]
 }
 
 const isPlans = (currentPath?: string) => currentPath === '/plans'
 
+interface DropdownProps {
+  readonly label: string
+  readonly icon: React.ReactNode
+  readonly isOpen: boolean
+  readonly onToggle: () => void
+  readonly isActive: boolean
+  readonly children: React.ReactNode
+  readonly dropdownRef: React.RefObject<HTMLDivElement | null>
+}
+
+function Dropdown({ label, icon, isOpen, onToggle, isActive, children, dropdownRef }: DropdownProps) {
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={onToggle}
+        className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          isActive
+            ? 'bg-purple-100 text-purple-700 border border-purple-200'
+            : 'text-gray-700 hover:text-purple-600 hover:bg-gray-50 border border-transparent'
+        }`}
+      >
+        {icon}
+        <span>{label}</span>
+        <svg
+          className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function Navbar({ userName, currentPath, isAdmin = false, currentTierId, tiers = [] }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  
+  const navDropdownRef = useRef<HTMLDivElement>(null)
+  const shopDropdownRef = useRef<HTMLDivElement>(null)
+  const supportDropdownRef = useRef<HTMLDivElement>(null)
   
   const isDashboard = currentPath === '/dashboard'
   const isCourses = currentPath === '/courses' || (currentPath?.startsWith('/courses/') ?? false)
   const isFiles = currentPath === '/files'
-  const isProfile = currentPath === '/profile'
   const isPlansPage = isPlans(currentPath)
   const isLoja = currentPath === '/loja' || (currentPath?.startsWith('/loja/') ?? false)
   const isHelp = currentPath === '/ajuda'
   const isSupport = currentPath === '/suporte' || (currentPath?.startsWith('/suporte/') ?? false)
 
-  // Links agrupados por categoria para o dropdown
+  // Seção 1: Navegação
   const navigationLinks = [
     { href: '/dashboard', label: 'Dashboard', isActive: isDashboard },
     { href: '/courses', label: 'Cursos', isActive: isCourses },
     { href: '/files', label: 'Biblioteca', isActive: isFiles },
   ]
 
+  // Seção 2: Loja/Compras
+  const shopLinks = [
+    { href: '/loja', label: 'Loja', isActive: isLoja },
+    { href: '/plans', label: 'Planos', isActive: isPlansPage },
+  ]
+
+  // Seção 3: Suporte
   const supportLinks = [
     { href: '/ajuda', label: 'Ajuda', isActive: isHelp },
     { href: '/suporte', label: 'Suporte', isActive: isSupport },
   ]
 
-  // Verificar se algum link do dropdown está ativo
-  const hasActiveLink = navigationLinks.some(link => link.isActive) || 
-                        supportLinks.some(link => link.isActive) || 
-                        (isAdmin && currentPath?.startsWith('/admin/loja'))
+  const isNavActive = navigationLinks.some(link => link.isActive)
+  const isShopActive = shopLinks.some(link => link.isActive)
+  const isSupportActive = supportLinks.some(link => link.isActive)
 
-  // Fechar dropdown ao clicar fora
+  // Verificar se o usuário tem tier Pro ou Premium
+  const currentTier = tiers.find(t => t.id === currentTierId)
+  const isProOrPremium = currentTier && (currentTier.name === 'Professor Pro' || currentTier.name === 'Premium')
+  const isManagePlan = currentPath === '/profile'
+
+  // Fechar dropdowns ao clicar fora
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false)
+      const refs = [navDropdownRef, shopDropdownRef, supportDropdownRef]
+      const clickedOutside = refs.every(ref => 
+        ref.current && !ref.current.contains(event.target as Node)
+      )
+      if (clickedOutside) {
+        setOpenDropdown(null)
       }
     }
 
-    if (isDropdownOpen) {
+    if (openDropdown) {
       document.addEventListener('mousedown', handleClickOutside)
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [isDropdownOpen])
+  }, [openDropdown])
 
   const linkClassName = (isActive: boolean) =>
-    `px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+    `block px-3 py-2 rounded-md text-sm transition-colors ${
       isActive
-        ? 'bg-purple-100 text-purple-700 border border-purple-200'
-        : 'text-gray-700 hover:text-purple-600 hover:bg-gray-50'
+        ? 'bg-purple-50 text-purple-700 font-medium'
+        : 'text-gray-700 hover:bg-gray-50 hover:text-purple-600'
     }`
 
   const mobileLinkClassName = (isActive: boolean) =>
@@ -77,6 +141,10 @@ export function Navbar({ userName, currentPath, isAdmin = false, currentTierId, 
         ? 'bg-purple-100 text-purple-700 border border-purple-200'
         : 'text-gray-700 hover:text-purple-600 hover:bg-gray-50'
     }`
+
+  const handleDropdownToggle = (dropdown: string) => {
+    setOpenDropdown(openDropdown === dropdown ? null : dropdown)
+  }
 
   return (
     <nav className="border-b border-gray-200 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
@@ -101,172 +169,119 @@ export function Navbar({ userName, currentPath, isAdmin = false, currentTierId, 
             <span className="text-xl font-bold text-gray-900">EduPlanner</span>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation - Três Dropdowns */}
           <div className="hidden lg:flex items-center space-x-2">
-            {/* Dropdown Menu */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  hasActiveLink
-                    ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                    : 'text-gray-700 hover:text-purple-600 hover:bg-gray-50 border border-transparent'
-                }`}
-              >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
+            {/* Dropdown 1: Navegação */}
+            <Dropdown
+              label="Navegação"
+              icon={
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
-                <span>Menu</span>
-                <svg
-                  className={`h-4 w-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-
-              {/* Dropdown Content */}
-              {isDropdownOpen && (
-                <div className="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
-                  {/* Navegação */}
-                  <div className="px-3 py-2">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                      Navegação
-                    </p>
-                    <div className="space-y-0.5">
-                      {navigationLinks.map((link) => (
-                        <Link
-                          key={link.href}
-                          href={link.href}
-                          onClick={() => setIsDropdownOpen(false)}
-                          className={`block px-3 py-2 rounded-md text-sm transition-colors ${
-                            link.isActive
-                              ? 'bg-purple-50 text-purple-700 font-medium'
-                              : 'text-gray-700 hover:bg-gray-50 hover:text-purple-600'
-                          }`}
-                        >
-                          {link.label}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Suporte */}
-                  <div className="px-3 py-2 border-t border-gray-100">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                      Suporte
-                    </p>
-                    <div className="space-y-0.5">
-                      {supportLinks.map((link) => (
-                        <Link
-                          key={link.href}
-                          href={link.href}
-                          onClick={() => setIsDropdownOpen(false)}
-                          className={`block px-3 py-2 rounded-md text-sm transition-colors ${
-                            link.isActive
-                              ? 'bg-purple-50 text-purple-700 font-medium'
-                              : 'text-gray-700 hover:bg-gray-50 hover:text-purple-600'
-                          }`}
-                        >
-                          {link.label}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Admin */}
-                  {isAdmin && (
-                    <div className="px-3 py-2 border-t border-gray-100">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                        Administração
-                      </p>
-                      <Link
-                        href="/admin/loja"
-                        onClick={() => setIsDropdownOpen(false)}
-                        className={`block px-3 py-2 rounded-md text-sm transition-colors ${
-                          currentPath?.startsWith('/admin/loja')
-                            ? 'bg-purple-50 text-purple-700 font-medium'
-                            : 'text-gray-700 hover:bg-gray-50 hover:text-purple-600'
-                        }`}
-                      >
-                        Admin Loja
-                      </Link>
-                    </div>
-                  )}
+              }
+              isOpen={openDropdown === 'nav'}
+              onToggle={() => handleDropdownToggle('nav')}
+              isActive={isNavActive}
+              dropdownRef={navDropdownRef}
+            >
+              <div className="px-3 py-2">
+                <div className="space-y-0.5">
+                  {navigationLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setOpenDropdown(null)}
+                      className={linkClassName(link.isActive)}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+            </Dropdown>
 
-            {/* Loja - Botão destacado */}
-            <Link
-              href="/loja"
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                isLoja
-                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-md'
-                  : 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 shadow-sm hover:shadow-md'
-              }`}
-            >
-              <span className="flex items-center space-x-1.5">
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                  />
+            {/* Dropdown 2: Loja/Compras */}
+            <Dropdown
+              label="Loja"
+              icon={
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                 </svg>
-                <span>Loja</span>
-              </span>
-            </Link>
+              }
+              isOpen={openDropdown === 'shop'}
+              onToggle={() => handleDropdownToggle('shop')}
+              isActive={isShopActive}
+              dropdownRef={shopDropdownRef}
+            >
+              <div className="px-3 py-2">
+                <div className="space-y-0.5">
+                  {shopLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setOpenDropdown(null)}
+                      className={linkClassName(link.isActive)}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </Dropdown>
 
-            {/* Planos - Botão destacado */}
-            <Link
-              href="/plans"
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                isPlansPage
-                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md'
-                  : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-sm hover:shadow-md'
-              }`}
-            >
-              <span className="flex items-center space-x-1.5">
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
-                  />
+            {/* Dropdown 3: Suporte */}
+            <Dropdown
+              label="Suporte"
+              icon={
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
-                <span>Planos</span>
-              </span>
-            </Link>
+              }
+              isOpen={openDropdown === 'support'}
+              onToggle={() => handleDropdownToggle('support')}
+              isActive={isSupportActive}
+              dropdownRef={supportDropdownRef}
+            >
+              <div className="px-3 py-2">
+                <div className="space-y-0.5">
+                  {supportLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setOpenDropdown(null)}
+                      className={linkClassName(link.isActive)}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+                {isProOrPremium && (
+                  <div className="border-t border-gray-100 mt-2 pt-2">
+                    <Link
+                      href="/profile"
+                      onClick={() => setOpenDropdown(null)}
+                      className={linkClassName(isManagePlan)}
+                    >
+                      Gerenciar Plano
+                    </Link>
+                  </div>
+                )}
+                {isAdmin && (
+                  <div className="border-t border-gray-100 mt-2 pt-2">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 px-3">
+                      Administração
+                    </p>
+                    <Link
+                      href="/admin/loja"
+                      onClick={() => setOpenDropdown(null)}
+                      className={linkClassName(currentPath?.startsWith('/admin/loja') ?? false)}
+                    >
+                      Admin Loja
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </Dropdown>
 
             {isAdmin && currentTierId && tiers.length > 0 && (
               <TierSelector tiers={tiers} currentTierId={currentTierId} />
@@ -355,14 +370,21 @@ export function Navbar({ userName, currentPath, isAdmin = false, currentTierId, 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
         <>
-          <div
+          <button
+            type="button"
             className="fixed inset-0 bg-black/50 z-40 lg:hidden"
             onClick={() => setIsMobileMenuOpen(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setIsMobileMenuOpen(false)
+              }
+            }}
+            aria-label="Fechar menu"
           />
           <div className="absolute left-0 right-0 top-16 bg-white border-b border-gray-200 shadow-lg z-50 lg:hidden max-h-[calc(100vh-4rem)] overflow-y-auto">
-            <div className="px-4 py-4 space-y-2">
+            <div className="px-4 py-4 space-y-4">
               {/* Navegação */}
-              <div className="mb-3">
+              <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">
                   Navegação
                 </p>
@@ -380,64 +402,27 @@ export function Navbar({ userName, currentPath, isAdmin = false, currentTierId, 
                 </div>
               </div>
 
-              {/* Loja e Planos destacados */}
-              <div className="mb-3 space-y-2">
-                <Link
-                  href="/loja"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`block px-4 py-3 rounded-lg text-base font-medium text-white transition-all ${
-                    isLoja
-                      ? 'bg-gradient-to-r from-purple-500 to-indigo-600 shadow-md'
-                      : 'bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 shadow-sm'
-                  }`}
-                >
-                  <span className="flex items-center space-x-2">
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+              {/* Loja */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">
+                  Loja
+                </p>
+                <div className="space-y-1">
+                  {shopLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={mobileLinkClassName(link.isActive)}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                      />
-                    </svg>
-                    <span>Loja</span>
-                  </span>
-                </Link>
-                <Link
-                  href="/plans"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`block px-4 py-3 rounded-lg text-base font-medium text-white transition-all ${
-                    isPlansPage
-                      ? 'bg-gradient-to-r from-indigo-500 to-purple-600 shadow-md'
-                      : 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-sm'
-                  }`}
-                >
-                  <span className="flex items-center space-x-2">
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
-                      />
-                    </svg>
-                    <span>Planos</span>
-                  </span>
-                </Link>
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
               </div>
 
               {/* Suporte */}
-              <div className="mb-3">
+              <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">
                   Suporte
                 </p>
@@ -453,23 +438,30 @@ export function Navbar({ userName, currentPath, isAdmin = false, currentTierId, 
                     </Link>
                   ))}
                 </div>
-              </div>
-
-              {/* Admin */}
-              {isAdmin && (
-                <div className="mb-3">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">
-                    Administração
-                  </p>
+                {isProOrPremium && (
                   <Link
-                    href="/admin/loja"
+                    href="/profile"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className={mobileLinkClassName(currentPath?.startsWith('/admin/loja') ?? false)}
+                    className={mobileLinkClassName(isManagePlan)}
                   >
-                    Admin Loja
+                    Gerenciar Plano
                   </Link>
-                </div>
-              )}
+                )}
+                {isAdmin && (
+                  <div className="border-t border-gray-200 mt-2 pt-2">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">
+                      Administração
+                    </p>
+                    <Link
+                      href="/admin/loja"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={mobileLinkClassName(currentPath?.startsWith('/admin/loja') ?? false)}
+                    >
+                      Admin Loja
+                    </Link>
+                  </div>
+                )}
+              </div>
 
               {isAdmin && currentTierId && tiers.length > 0 && (
                 <div className="px-4 py-2">

@@ -1,21 +1,120 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { FileProductCard } from './file-product-card'
 import { ProductCard } from './product-card'
 import { ProductDetailModal } from './product-detail-modal'
+import { EmptyState } from './empty-state'
+import { ProductSkeleton, FileProductSkeleton } from './product-skeleton'
 import type { FileProductWithPurchaseStatus } from '@/lib/queries/file-products'
 import type { ProductWithDetails } from '@/lib/queries/products'
+import type { FilterState, ProductType, SortOption } from './filters-panel'
 
 interface ProductsGridProps {
   fileProducts: FileProductWithPurchaseStatus[]
   products: ProductWithDetails[]
   isAuthenticated: boolean
+  searchQuery: string
+  filters: FilterState
+  activeCategory: ProductType
+  isLoading?: boolean
+  onClearFilters?: () => void
 }
 
-export function ProductsGrid({ fileProducts, products, isAuthenticated }: ProductsGridProps) {
+export function ProductsGrid({
+  fileProducts,
+  products,
+  isAuthenticated,
+  searchQuery,
+  filters,
+  activeCategory,
+  isLoading = false,
+  onClearFilters,
+}: ProductsGridProps) {
   const [selectedProduct, setSelectedProduct] = useState<ProductWithDetails | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+
+  // Filter and search products
+  const filteredProducts = useMemo(() => {
+    let filtered: Array<FileProductWithPurchaseStatus | ProductWithDetails> = []
+
+    // Combine all products based on category
+    if (activeCategory === 'all' || activeCategory === 'files') {
+      filtered = [...filtered, ...fileProducts]
+    }
+    if (activeCategory === 'all' || activeCategory === 'bundles') {
+      filtered = [...filtered, ...products]
+    }
+
+    // Apply search
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter((item) => {
+        const title = 'title' in item ? item.title.toLowerCase() : ''
+        const description = 'description' in item ? item.description?.toLowerCase() || '' : ''
+        return title.includes(query) || description.includes(query)
+      })
+    }
+
+    // Apply type filter (if not already filtered by category)
+    if (filters.type !== 'all') {
+      if (filters.type === 'files') {
+        filtered = filtered.filter((item) => 'file_name' in item)
+      } else {
+        filtered = filtered.filter((item) => 'attachment_count' in item)
+      }
+    }
+
+    // Apply price filter
+    filtered = filtered.filter((item) => {
+      const price = 'price' in item ? item.price : 0
+      return price >= filters.minPrice && price <= filters.maxPrice
+    })
+
+    // Apply tags filter
+    if (filters.tags.length > 0) {
+      filtered = filtered.filter((item) => {
+        if ('tags' in item && item.tags) {
+          return filters.tags.some((tag) => item.tags?.includes(tag))
+        }
+        return false
+      })
+    }
+
+    // Apply purchased filter
+    if (filters.purchasedOnly) {
+      filtered = filtered.filter((item) => item.is_purchased)
+    }
+
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      switch (filters.sortBy) {
+        case 'price-asc':
+          return (a.price || 0) - (b.price || 0)
+        case 'price-desc':
+          return (b.price || 0) - (a.price || 0)
+        case 'name-asc':
+          return (a.title || '').localeCompare(b.title || '')
+        case 'name-desc':
+          return (b.title || '').localeCompare(a.title || '')
+        case 'newest':
+        default:
+          return (
+            new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+          )
+      }
+    })
+
+    return sorted
+  }, [fileProducts, products, searchQuery, filters, activeCategory])
+
+  // Separate filtered products
+  const filteredFileProducts = filteredProducts.filter(
+    (item) => 'file_name' in item
+  ) as FileProductWithPurchaseStatus[]
+  const filteredBundles = filteredProducts.filter(
+    (item) => 'attachment_count' in item
+  ) as ProductWithDetails[]
 
   const handleProductClick = (product: ProductWithDetails) => {
     setSelectedProduct(product)
@@ -27,6 +126,23 @@ export function ProductsGrid({ fileProducts, products, isAuthenticated }: Produc
     setSelectedProduct(null)
   }
 
+  const hasActiveFilters =
+    searchQuery.trim() !== '' ||
+    filters.type !== 'all' ||
+    filters.tags.length > 0 ||
+    filters.purchasedOnly ||
+    filters.sortBy !== 'newest'
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {[...Array(8)].map((_, i) => (
+          <div key={i}>{i % 2 === 0 ? <FileProductSkeleton /> : <ProductSkeleton />}</div>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <>
       <ProductDetailModal
@@ -35,63 +151,72 @@ export function ProductsGrid({ fileProducts, products, isAuthenticated }: Produc
         onClose={handleCloseModal}
         isAuthenticated={isAuthenticated}
       />
-    <div className="space-y-12">
-      {/* File Products Section */}
-      {fileProducts.length > 0 && (
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Arquivos Individuais</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {fileProducts.map((product) => (
-              <FileProductCard
-                key={product.id}
-                product={product}
-                isAuthenticated={isAuthenticated}
-              />
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* Bundles Section */}
-      {products.length > 0 && (
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Bundles</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {products.map((product) => (
+      {filteredProducts.length === 0 ? (
+        <EmptyState
+          hasFilters={hasActiveFilters}
+          searchQuery={searchQuery}
+          onClearFilters={onClearFilters}
+        />
+      ) : (
+        <div
+          className="grid grid-cols-1 md:grid-cols-2 gap-6"
+          style={{
+            animation: 'fadeIn 0.5s ease-in',
+          }}
+        >
+          {filteredFileProducts.map((product, index) => (
+            <div
+              key={product.id}
+              style={{
+                animationDelay: `${index * 0.05}s`,
+                animation: 'slideUp 0.4s ease-out forwards',
+                opacity: 0,
+              }}
+            >
+              <FileProductCard product={product} isAuthenticated={isAuthenticated} />
+            </div>
+          ))}
+          {filteredBundles.map((product, index) => (
+            <div
+              key={product.id}
+              style={{
+                animationDelay: `${(filteredFileProducts.length + index) * 0.05}s`,
+                animation: 'slideUp 0.4s ease-out forwards',
+                opacity: 0,
+              }}
+            >
               <ProductCard
-                key={product.id}
                 product={product}
                 isAuthenticated={isAuthenticated}
                 onClick={() => handleProductClick(product)}
               />
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Empty State */}
-      {fileProducts.length === 0 && products.length === 0 && (
-        <div className="bg-white rounded-xl p-12 border border-gray-200 text-center">
-          <svg
-            className="mx-auto h-12 w-12 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-            />
-          </svg>
-          <h3 className="mt-4 text-lg font-semibold text-gray-900">Nenhum produto disponível</h3>
-          <p className="mt-2 text-sm text-gray-600">
-            Não há produtos disponíveis no momento. Volte em breve!
-          </p>
-        </div>
-      )}
-    </div>
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </>
   )
 }

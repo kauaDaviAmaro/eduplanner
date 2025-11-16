@@ -1,6 +1,12 @@
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { isBuildTimeError } from '@/lib/auth/build-error'
+import { getFileProductsWithPurchaseStatus } from '@/lib/queries/file-products'
+import { getProductsWithPurchaseStatus } from '@/lib/queries/products'
+import { FeaturedProductsSection } from '@/components/shop/featured-products-section'
+
+// Force dynamic rendering to avoid build-time database access
+export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
   let session = null
@@ -13,6 +19,26 @@ export default async function HomePage() {
     session = null
   }
   const user = session?.user
+
+  // Get featured products for landing page (limit to 4 of each type)
+  let featuredFileProducts: Awaited<ReturnType<typeof getFileProductsWithPurchaseStatus>> = []
+  let featuredProducts: Awaited<ReturnType<typeof getProductsWithPurchaseStatus>> = []
+  
+  try {
+    const [allFileProducts, allProducts] = await Promise.all([
+      getFileProductsWithPurchaseStatus(),
+      getProductsWithPurchaseStatus(),
+    ])
+
+    // Get first 4 active products of each type
+    featuredFileProducts = allFileProducts.filter(p => p.is_active).slice(0, 4)
+    featuredProducts = allProducts.filter(p => p.is_active).slice(0, 4)
+  } catch (error) {
+    // If database is not available during build, just show empty products
+    console.warn('Could not load products for landing page:', error)
+  }
+  
+  const isAuthenticated = !!user
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-50">
@@ -267,6 +293,13 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Shop Section */}
+      <FeaturedProductsSection
+        fileProducts={featuredFileProducts}
+        products={featuredProducts}
+        isAuthenticated={isAuthenticated}
+      />
 
       {/* Stats Section */}
       <section className="bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600 py-16 sm:py-24">
