@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { FileProductCard } from './file-product-card'
 import { ProductCard } from './product-card'
+import { ProductDetailModal } from './product-detail-modal'
 import type { FileProductWithPurchaseStatus } from '@/lib/queries/file-products'
 import type { ProductWithDetails } from '@/lib/queries/products'
 
@@ -12,7 +14,27 @@ interface ProductsGridProps {
 }
 
 export function ProductsGrid({ fileProducts, products, isAuthenticated }: ProductsGridProps) {
+  const [selectedProduct, setSelectedProduct] = useState<ProductWithDetails | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const handleProductClick = (product: ProductWithDetails) => {
+    setSelectedProduct(product)
+    setIsModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setSelectedProduct(null)
+  }
+
   return (
+    <>
+      <ProductDetailModal
+        product={selectedProduct}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        isAuthenticated={isAuthenticated}
+      />
     <div className="space-y-12">
       {/* File Products Section */}
       {fileProducts.length > 0 && (
@@ -40,6 +62,7 @@ export function ProductsGrid({ fileProducts, products, isAuthenticated }: Produc
                 key={product.id}
                 product={product}
                 isAuthenticated={isAuthenticated}
+                onClick={() => handleProductClick(product)}
               />
             ))}
           </div>
@@ -69,6 +92,7 @@ export function ProductsGrid({ fileProducts, products, isAuthenticated }: Produc
         </div>
       )}
     </div>
+    </>
   )
 }
 

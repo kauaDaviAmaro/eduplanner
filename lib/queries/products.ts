@@ -26,6 +26,7 @@ export type ProductWithDetails = Product & {
     file_name: string
     file_type: string
     file_url: string | null
+    video_url: string | null
   }>
 }
 
@@ -120,18 +121,20 @@ export async function getProductWithDetails(id: string): Promise<ProductWithDeta
 
   if (!product) return null
 
-  // Get attachments
+  // Get attachments with video_url
   const attachments = await queryMany<{
     id: string
     file_name: string
     file_type: string
     file_url: string | null
+    video_url: string | null
   }>(
     `SELECT 
        a.id,
        a.file_name,
        a.file_type,
-       a.file_url
+       a.file_url,
+       pa.video_url
      FROM product_attachments pa
      INNER JOIN attachments a ON pa.attachment_id = a.id
      WHERE pa.product_id = $1

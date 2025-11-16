@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth'
 import { isBuildTimeError } from '@/lib/auth/build-error'
 import { getDashboardData } from '@/lib/queries/dashboard'
 import { getCurrentUserProfile } from '@/lib/queries/profiles'
-import { getAdminStats, getAllUsers, getAllCoursesForAdmin } from '@/lib/queries/admin'
+import { getAdminStats, getAllUsers, getAllCoursesForAdmin, getAllAttachmentsForAdmin } from '@/lib/queries/admin'
 import { getAllTiers } from '@/lib/queries/courses'
 import { ProgressBar } from '@/components/dashboard/progress-bar'
 import { ContinueWatching } from '@/components/dashboard/continue-watching'
@@ -14,17 +14,15 @@ import { CertificatesSection } from '@/components/dashboard/certificates-section
 import { FilesSection } from '@/components/dashboard/files-section'
 import { PlannerWidget } from '@/components/dashboard/planner-widget'
 import { NotificationsPanel } from '@/components/dashboard/notifications-panel'
-import { QuickAccessMenu } from '@/components/dashboard/quick-access-menu'
 import { DashboardTabs } from '@/components/dashboard/dashboard-tabs'
 import { AdminStats } from '@/components/admin/admin-stats'
 import { AdminUsers } from '@/components/admin/admin-users'
 import { AdminCourses } from '@/components/admin/admin-courses'
 import { AdminFiles } from '@/components/admin/admin-files'
-import { getAllAttachmentsForAdmin } from '@/lib/queries/admin'
 import { Navbar } from '@/components/layout/navbar'
 
 interface DashboardPageProps {
-  searchParams: Promise<{ tab?: string }>
+  readonly searchParams: Promise<{ tab?: string }>
 }
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
@@ -71,11 +69,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   }
 
   const isAdmin = session.user.isAdmin || false
-  
+
   if ((currentTab === 'stats' || currentTab === 'users' || currentTab === 'courses' || currentTab === 'files') && !isAdmin) {
     redirect('/dashboard')
   }
-  
+
   let adminStats = null
   let adminUsers = null
   let adminCourses = null
@@ -100,8 +98,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar 
-        userName={profile?.name || null} 
+      <Navbar
+        userName={profile?.name || null}
         currentPath="/dashboard"
         isAdmin={isAdmin}
         currentTierId={profile?.tier_id}
@@ -120,69 +118,63 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
 
-          {/* Progress Bar */}
-          <div className="mb-6">
-            <ProgressBar percentage={dashboardData.overallProgress.percentage} />
-          </div>
+              {/* Progress Bar */}
+              <div className="mb-6">
+                <ProgressBar percentage={dashboardData.overallProgress.percentage} />
+              </div>
 
-          {/* Continue Watching and Tier Status */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div className="lg:col-span-2">
-              <ContinueWatching lastWatched={dashboardData.lastWatchedLesson} />
+              {/* Continue Watching and Tier Status */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <div className="lg:col-span-2">
+                  <ContinueWatching lastWatched={dashboardData.lastWatchedLesson} />
+                </div>
+                <div>
+                  <TierStatus subscription={dashboardData.subscription} profile={profile} />
+                </div>
+              </div>
             </div>
-            <div>
-              <TierStatus subscription={dashboardData.subscription} profile={profile} />
-            </div>
-          </div>
-        </div>
 
-        {/* Library Section */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Biblioteca Pessoal</h2>
-
-          {/* In Progress Courses */}
-          <div className="mb-6">
-            <InProgressCourses courses={dashboardData.inProgressCourses} />
-          </div>
-
-          {/* Favorites */}
-          <div className="mb-6">
-            <FavoritesSection courses={dashboardData.favoriteCourses} />
-          </div>
-
-          {/* Certificates */}
-          {dashboardData.availableCertificates.length > 0 && (
-            <div className="mb-6">
-              <CertificatesSection certificates={dashboardData.availableCertificates} />
-            </div>
-          )}
-
-          {/* Recent Files */}
-          <div className="mb-6">
-            <FilesSection files={dashboardData.recentFiles} />
-          </div>
-        </div>
-
-        {/* Action Tools Section */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Ferramentas de Ação</h2>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Planner Widget */}
-            <PlannerWidget initialPlans={dashboardData.lessonPlans} />
-
-            {/* Notifications Panel */}
-            <NotificationsPanel
-              notifications={dashboardData.notifications}
-              unreadCount={dashboardData.unreadNotificationsCount}
-            />
-          </div>
-        </div>
-
-            {/* Quick Access */}
+            {/* Library Section */}
             <div className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Acessos Rápidos</h2>
-              <QuickAccessMenu />
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Biblioteca Pessoal</h2>
+
+              {/* In Progress Courses */}
+              <div className="mb-6">
+                <InProgressCourses courses={dashboardData.inProgressCourses} />
+              </div>
+
+              {/* Favorites */}
+              <div className="mb-6">
+                <FavoritesSection courses={dashboardData.favoriteCourses} />
+              </div>
+
+              {/* Certificates */}
+              {dashboardData.availableCertificates.length > 0 && (
+                <div className="mb-6">
+                  <CertificatesSection certificates={dashboardData.availableCertificates} />
+                </div>
+              )}
+
+              {/* Recent Files */}
+              <div className="mb-6">
+                <FilesSection files={dashboardData.recentFiles} />
+              </div>
+            </div>
+
+            {/* Action Tools Section */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Ferramentas de Ação</h2>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Planner Widget */}
+                <PlannerWidget initialPlans={dashboardData.lessonPlans} />
+
+                {/* Notifications Panel */}
+                <NotificationsPanel
+                  notifications={dashboardData.notifications}
+                  unreadCount={dashboardData.unreadNotificationsCount}
+                />
+              </div>
             </div>
           </>
         )}

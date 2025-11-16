@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { getCurrentUserId } from '@/lib/auth/helpers'
 import { isAdmin } from '@/lib/auth/helpers'
 import { redirect } from 'next/navigation'
-import { queryOne } from '@/lib/db/client'
+import { queryOne, queryMany } from '@/lib/db/client'
 
 /**
  * Create a file product
@@ -15,6 +15,12 @@ export async function createFileProduct(data: {
   description?: string
   price: number
   is_active?: boolean
+  video_url?: string
+  thumbnail_url?: string
+  is_shop_only?: boolean
+  long_description?: string
+  specifications?: Record<string, any>
+  tags?: string[]
 }): Promise<{ success: boolean; fileProductId?: string; error?: string }> {
   const userId = await getCurrentUserId()
   if (!userId) {
@@ -38,8 +44,8 @@ export async function createFileProduct(data: {
     }
 
     const result = await queryOne<{ id: string }>(
-      `INSERT INTO file_products (attachment_id, title, description, price, is_active)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO file_products (attachment_id, title, description, price, is_active, video_url, thumbnail_url, is_shop_only, long_description, specifications, tags)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING id`,
       [
         data.attachment_id,
@@ -47,6 +53,12 @@ export async function createFileProduct(data: {
         data.description || null,
         data.price,
         data.is_active !== undefined ? data.is_active : true,
+        data.video_url || null,
+        data.thumbnail_url || null,
+        data.is_shop_only !== undefined ? data.is_shop_only : true,
+        data.long_description || null,
+        data.specifications ? JSON.stringify(data.specifications) : null,
+        data.tags && data.tags.length > 0 ? data.tags : null,
       ]
     )
 
@@ -74,6 +86,12 @@ export async function updateFileProduct(
     description?: string
     price?: number
     is_active?: boolean
+    video_url?: string
+    thumbnail_url?: string
+    is_shop_only?: boolean
+    long_description?: string
+    specifications?: Record<string, any>
+    tags?: string[]
   }
 ): Promise<{ success: boolean; error?: string }> {
   const userId = await getCurrentUserId()
@@ -106,6 +124,30 @@ export async function updateFileProduct(
     if (data.is_active !== undefined) {
       updates.push(`is_active = $${paramIndex++}`)
       values.push(data.is_active)
+    }
+    if (data.video_url !== undefined) {
+      updates.push(`video_url = $${paramIndex++}`)
+      values.push(data.video_url || null)
+    }
+    if (data.thumbnail_url !== undefined) {
+      updates.push(`thumbnail_url = $${paramIndex++}`)
+      values.push(data.thumbnail_url || null)
+    }
+    if (data.is_shop_only !== undefined) {
+      updates.push(`is_shop_only = $${paramIndex++}`)
+      values.push(data.is_shop_only)
+    }
+    if (data.long_description !== undefined) {
+      updates.push(`long_description = $${paramIndex++}`)
+      values.push(data.long_description || null)
+    }
+    if (data.specifications !== undefined) {
+      updates.push(`specifications = $${paramIndex++}`)
+      values.push(data.specifications ? JSON.stringify(data.specifications) : null)
+    }
+    if (data.tags !== undefined) {
+      updates.push(`tags = $${paramIndex++}`)
+      values.push(data.tags && data.tags.length > 0 ? data.tags : null)
     }
 
     if (updates.length === 0) {
@@ -166,6 +208,7 @@ export async function createProduct(data: {
   thumbnail_url?: string
   is_active?: boolean
   attachment_ids: string[]
+  attachment_videos?: Record<string, string> // Map of attachment_id -> video_url
 }): Promise<{ success: boolean; productId?: string; error?: string }> {
   const userId = await getCurrentUserId()
   if (!userId) {
@@ -198,15 +241,47 @@ export async function createProduct(data: {
 
     const productId = productResult.id
 
-    // Add attachments to bundle
+    // Add attachments to bundle and mark as shop-only
     if (data.attachment_ids.length > 0) {
       for (const attachmentId of data.attachment_ids) {
+        const videoUrl = data.attachment_videos?.[attachmentId] || null
+
+        // Insert into product_attachments with video_url
         await queryOne(
-          `INSERT INTO product_attachments (product_id, attachment_id)
-           VALUES ($1, $2)
-           ON CONFLICT (product_id, attachment_id) DO NOTHING`,
-          [productId, attachmentId]
+          `INSERT INTO product_attachments (product_id, attachment_id, video_url)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (product_id, attachment_id) DO UPDATE SET video_url = $3`,
+          [productId, attachmentId, videoUrl]
         )
+
+        // Mark attachment as shop-only by creating/updating file_product
+        // Check if file_product already exists
+        const existingFileProduct = await queryOne<{ id: string }>(
+          `SELECT id FROM file_products WHERE attachment_id = $1`,
+          [attachmentId]
+        )
+
+        if (!existingFileProduct) {
+          // Create file_product with is_shop_only = true
+          await queryOne(
+            `INSERT INTO file_products (attachment_id, title, description, price, is_active, is_shop_only)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [
+              attachmentId,
+              data.title, // Use bundle title as default
+              data.description || null,
+              data.price, // Use bundle price as default
+              false, // Not active as individual product
+              true, // Shop-only
+            ]
+          )
+        } else {
+          // Update existing file_product to be shop-only
+          await queryOne(
+            `UPDATE file_products SET is_shop_only = true WHERE attachment_id = $1`,
+            [attachmentId]
+          )
+        }
       }
     }
 
@@ -232,6 +307,7 @@ export async function updateProduct(
     thumbnail_url?: string
     is_active?: boolean
     attachment_ids?: string[]
+    attachment_videos?: Record<string, string> // Map of attachment_id -> video_url
   }
 ): Promise<{ success: boolean; error?: string }> {
   const userId = await getCurrentUserId()
@@ -281,19 +357,65 @@ export async function updateProduct(
 
     // Update attachments if provided
     if (data.attachment_ids !== undefined) {
+      // Get current product info for shop-only marking
+      const product = await queryOne<{ title: string; description: string | null; price: number }>(
+        `SELECT title, description, price FROM products WHERE id = $1`,
+        [id]
+      )
+
+      // Get existing attachment IDs before deletion
+      const existingAttachments = await queryMany<{ attachment_id: string }>(
+        `SELECT attachment_id FROM product_attachments WHERE product_id = $1`,
+        [id]
+      )
+      const existingIds = new Set(existingAttachments.map(a => a.attachment_id))
+
       // Delete existing attachments
       await queryOne(`DELETE FROM product_attachments WHERE product_id = $1`, [id])
 
-      // Add new attachments
+      // Add new attachments with video_url and mark as shop-only
       if (data.attachment_ids.length > 0) {
         for (const attachmentId of data.attachment_ids) {
+          const videoUrl = data.attachment_videos?.[attachmentId] || null
+
           await queryOne(
-            `INSERT INTO product_attachments (product_id, attachment_id)
-             VALUES ($1, $2)`,
-            [id, attachmentId]
+            `INSERT INTO product_attachments (product_id, attachment_id, video_url)
+             VALUES ($1, $2, $3)`,
+            [id, attachmentId, videoUrl]
           )
+
+          // Mark attachment as shop-only if not already marked
+          const existingFileProduct = await queryOne<{ id: string }>(
+            `SELECT id FROM file_products WHERE attachment_id = $1`,
+            [attachmentId]
+          )
+
+          if (!existingFileProduct) {
+            // Create file_product with is_shop_only = true
+            await queryOne(
+              `INSERT INTO file_products (attachment_id, title, description, price, is_active, is_shop_only)
+               VALUES ($1, $2, $3, $4, $5, $6)`,
+              [
+                attachmentId,
+                product?.title || 'Bundle File',
+                product?.description || null,
+                product?.price || 0,
+                false, // Not active as individual product
+                true, // Shop-only
+              ]
+            )
+          } else {
+            // Update existing file_product to be shop-only
+            await queryOne(
+              `UPDATE file_products SET is_shop_only = true WHERE attachment_id = $1`,
+              [attachmentId]
+            )
+          }
         }
       }
+
+      // If attachment was removed from bundle, we don't automatically unmark as shop-only
+      // (it might still be shop-only for other reasons)
     }
 
     revalidatePath('/admin/loja')

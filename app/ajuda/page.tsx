@@ -352,9 +352,18 @@ export default async function HelpPage() {
               Estamos aqui para ajudar!
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link
+                href="/suporte"
+                className="inline-flex items-center space-x-2 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-3 text-sm font-semibold text-white hover:from-purple-700 hover:to-indigo-700 transition-all"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <span>Criar Ticket de Suporte</span>
+              </Link>
               <a
                 href="mailto:suporte@eduplanner.com"
-                className="inline-flex items-center space-x-2 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-3 text-sm font-semibold text-white hover:from-purple-700 hover:to-indigo-700 transition-all"
+                className="inline-flex items-center space-x-2 rounded-lg border-2 border-purple-600 px-6 py-3 text-sm font-semibold text-purple-600 hover:bg-purple-50 transition-all"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -364,14 +373,14 @@ export default async function HelpPage() {
               {session?.user ? (
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center space-x-2 rounded-lg border-2 border-purple-600 px-6 py-3 text-sm font-semibold text-purple-600 hover:bg-purple-50 transition-all"
+                  className="inline-flex items-center space-x-2 rounded-lg border-2 border-gray-300 px-6 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all"
                 >
                   <span>Voltar ao Dashboard</span>
                 </Link>
               ) : (
                 <Link
                   href="/login"
-                  className="inline-flex items-center space-x-2 rounded-lg border-2 border-purple-600 px-6 py-3 text-sm font-semibold text-purple-600 hover:bg-purple-50 transition-all"
+                  className="inline-flex items-center space-x-2 rounded-lg border-2 border-gray-300 px-6 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all"
                 >
                   <span>Fazer Login</span>
                 </Link>

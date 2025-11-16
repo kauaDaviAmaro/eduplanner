@@ -33,6 +33,12 @@ export function FileProductForm({ fileProduct, attachments = [], tiers = [] }: F
     fileName: '',
     fileType: 'PDF',
     minimumTierId: tiers[0]?.id || 0,
+    video_url: fileProduct?.video_url || '',
+    thumbnail_url: fileProduct?.thumbnail_url || '',
+    is_shop_only: fileProduct?.is_shop_only !== undefined ? fileProduct.is_shop_only : true,
+    long_description: fileProduct?.long_description || '',
+    specifications: fileProduct?.specifications ? JSON.stringify(fileProduct.specifications, null, 2) : '',
+    tags: fileProduct?.tags?.join(', ') || '',
   })
 
   const isEditMode = !!fileProduct
@@ -154,11 +160,34 @@ export function FileProductForm({ fileProduct, attachments = [], tiers = [] }: F
     startTransition(async () => {
       try {
         if (isEditMode) {
+          // Parse specifications JSON
+          let specifications: Record<string, any> | undefined = undefined
+          if (formData.specifications.trim()) {
+            try {
+              specifications = JSON.parse(formData.specifications)
+            } catch (e) {
+              setError('Especificações devem ser um JSON válido')
+              return
+            }
+          }
+
+          // Parse tags
+          const tags = formData.tags
+            .split(',')
+            .map((tag) => tag.trim())
+            .filter((tag) => tag.length > 0)
+
           const result = await updateFileProduct(fileProduct!.id, {
             title: formData.title,
             description: formData.description || undefined,
             price: formData.price,
             is_active: formData.is_active,
+            video_url: formData.video_url || undefined,
+            thumbnail_url: formData.thumbnail_url || undefined,
+            is_shop_only: formData.is_shop_only,
+            long_description: formData.long_description || undefined,
+            specifications,
+            tags: tags.length > 0 ? tags : undefined,
           })
 
           if (result.success) {
@@ -193,12 +222,35 @@ export function FileProductForm({ fileProduct, attachments = [], tiers = [] }: F
             await handleFileUpload(selectedFile, attachmentId)
           }
 
+          // Parse specifications JSON
+          let specifications: Record<string, any> | undefined = undefined
+          if (formData.specifications.trim()) {
+            try {
+              specifications = JSON.parse(formData.specifications)
+            } catch (e) {
+              setError('Especificações devem ser um JSON válido')
+              return
+            }
+          }
+
+          // Parse tags
+          const tags = formData.tags
+            .split(',')
+            .map((tag) => tag.trim())
+            .filter((tag) => tag.length > 0)
+
           const result = await createFileProduct({
             attachment_id: attachmentId,
             title: formData.title,
             description: formData.description || undefined,
             price: formData.price,
             is_active: formData.is_active,
+            video_url: formData.video_url || undefined,
+            thumbnail_url: formData.thumbnail_url || undefined,
+            is_shop_only: formData.is_shop_only,
+            long_description: formData.long_description || undefined,
+            specifications,
+            tags: tags.length > 0 ? tags : undefined,
           })
 
           if (result.success) {
@@ -393,6 +445,94 @@ export function FileProductForm({ fileProduct, attachments = [], tiers = [] }: F
             placeholder="0.00"
             required
           />
+        </div>
+
+        {/* Video URL */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            URL do Vídeo (opcional)
+          </label>
+          <input
+            type="url"
+            value={formData.video_url}
+            onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            placeholder="https://..."
+          />
+          <p className="mt-1 text-xs text-gray-500">URL do vídeo armazenado no sistema</p>
+        </div>
+
+        {/* Thumbnail URL */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            URL da Thumbnail (opcional)
+          </label>
+          <input
+            type="url"
+            value={formData.thumbnail_url}
+            onChange={(e) => setFormData({ ...formData, thumbnail_url: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            placeholder="https://..."
+          />
+          <p className="mt-1 text-xs text-gray-500">URL da imagem de destaque do produto</p>
+        </div>
+
+        {/* Long Description */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Descrição Detalhada (opcional)
+          </label>
+          <textarea
+            value={formData.long_description}
+            onChange={(e) => setFormData({ ...formData, long_description: e.target.value })}
+            rows={6}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            placeholder="Descrição completa e detalhada do produto..."
+          />
+        </div>
+
+        {/* Specifications */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Especificações Técnicas (JSON, opcional)
+          </label>
+          <textarea
+            value={formData.specifications}
+            onChange={(e) => setFormData({ ...formData, specifications: e.target.value })}
+            rows={6}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
+            placeholder='{"Versão": "1.0", "Plataforma": "Windows", ...}'
+          />
+          <p className="mt-1 text-xs text-gray-500">Formato JSON: {"{"}"chave": "valor"{"}"}</p>
+        </div>
+
+        {/* Tags */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Tags/Categorias (opcional)
+          </label>
+          <input
+            type="text"
+            value={formData.tags}
+            onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            placeholder="tag1, tag2, tag3"
+          />
+          <p className="mt-1 text-xs text-gray-500">Separe as tags por vírgula</p>
+        </div>
+
+        {/* Shop Only */}
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="is_shop_only"
+            checked={formData.is_shop_only}
+            onChange={(e) => setFormData({ ...formData, is_shop_only: e.target.checked })}
+            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+          />
+          <label htmlFor="is_shop_only" className="ml-2 block text-sm text-gray-700">
+            Exclusivo da loja (não aparece na biblioteca)
+          </label>
         </div>
 
         {/* Active Status */}

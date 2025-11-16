@@ -34,7 +34,7 @@ export default async function NewProductPage() {
           <p className="text-gray-600">Crie um novo bundle com múltiplos arquivos</p>
         </div>
 
-        <ProductForm attachments={attachments} />
+        <ProductForm attachments={attachments} tiers={tiers} />
       </main>
     </div>
   )

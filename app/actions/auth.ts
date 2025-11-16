@@ -80,6 +80,10 @@ export async function signIn(
     })
 
     if (result?.error) {
+      // CredentialsSignin is expected for invalid credentials, don't log as error
+      if (result.error !== 'CredentialsSignin') {
+        console.error('Unexpected sign in error:', result.error)
+      }
       return {
         success: false,
         error: 'Email ou senha incorretos',
@@ -93,12 +97,15 @@ export async function signIn(
 
     // Use redirect() to ensure cookies are properly sent in the response
     redirect(redirectTo || '/dashboard')
-  } catch (error) {
-    console.error('Unexpected error in signIn:', error)
+  } catch (error: any) {
+    // Only log non-credential errors
+    if (error?.type !== 'CredentialsSignin') {
+      console.error('Unexpected error in signIn:', error)
+    }
 
     return {
       success: false,
-      error: 'Erro inesperado ao fazer login. Tente novamente.',
+      error: 'Email ou senha incorretos',
       redirectTo: null,
     }
   }

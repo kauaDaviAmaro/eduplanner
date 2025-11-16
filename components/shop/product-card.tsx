@@ -8,11 +8,24 @@ import Image from 'next/image'
 interface ProductCardProps {
   product: ProductWithDetails
   isAuthenticated: boolean
+  onClick?: () => void
 }
 
-export function ProductCard({ product, isAuthenticated }: ProductCardProps) {
+export function ProductCard({ product, isAuthenticated, onClick }: ProductCardProps) {
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on the buy button
+    const target = e.target as HTMLElement
+    if (target.closest('button')) {
+      return
+    }
+    onClick?.()
+  }
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+    <div
+      className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+      onClick={handleCardClick}
+    >
       {product.thumbnail_url ? (
         <div className="relative h-48 w-full bg-gray-100">
           <Image

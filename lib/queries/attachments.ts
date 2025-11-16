@@ -25,9 +25,25 @@ export async function hasAttachmentAccess(attachmentId: string): Promise<boolean
     return true
   }
 
+  // Check if this attachment is a shop-only product
+  // If it is, don't grant access through library (must access via shop)
+  const shopProduct = await queryOne<{ is_shop_only: boolean }>(
+    `SELECT fp.is_shop_only
+     FROM file_products fp
+     WHERE fp.attachment_id = $1`,
+    [attachmentId]
+  )
+
+  // If it's a shop-only product, don't grant library access
+  // (even if purchased, it should be accessed via shop, not library)
+  if (shopProduct?.is_shop_only) {
+    return false
+  }
+
   // First check if user purchased this attachment (purchased files are always accessible)
+  // But only if it's not shop-only
   const hasPurchased = await hasPurchasedAttachment(attachmentId, userId)
-  if (hasPurchased) {
+  if (hasPurchased && !shopProduct?.is_shop_only) {
     return true
   }
 
@@ -211,7 +227,7 @@ export async function getAllAttachments(): Promise<AttachmentWithContext[]> {
     return []
   }
 
-  // If admin, return all attachments
+  // If admin, return all attachments (excluding shop-only products and bundle attachments)
   if (userIsAdmin) {
     const attachments = await queryMany<AttachmentWithContext>(
       `SELECT 
@@ -232,13 +248,17 @@ export async function getAllAttachments(): Promise<AttachmentWithContext[]> {
        LEFT JOIN lessons l ON a.lesson_id = l.id
        LEFT JOIN modules m ON l.module_id = m.id
        LEFT JOIN courses c ON m.course_id = c.id
+       LEFT JOIN file_products fp ON a.id = fp.attachment_id
+       LEFT JOIN product_attachments pa ON a.id = pa.attachment_id
        INNER JOIN tiers t ON a.minimum_tier_id = t.id
+       WHERE (fp.id IS NULL OR fp.is_shop_only = false)
+         AND pa.id IS NULL
        ORDER BY a.created_at DESC`
     )
     return attachments
   }
 
-  // Otherwise, filter by permission level
+  // Otherwise, filter by permission level and exclude shop-only products and bundle attachments
   const attachments = await queryMany<AttachmentWithContext>(
     `SELECT 
        a.id,
@@ -258,8 +278,12 @@ export async function getAllAttachments(): Promise<AttachmentWithContext[]> {
      LEFT JOIN lessons l ON a.lesson_id = l.id
      LEFT JOIN modules m ON l.module_id = m.id
      LEFT JOIN courses c ON m.course_id = c.id
+     LEFT JOIN file_products fp ON a.id = fp.attachment_id
+     LEFT JOIN product_attachments pa ON a.id = pa.attachment_id
      INNER JOIN tiers t ON a.minimum_tier_id = t.id
      WHERE t.permission_level <= $1
+       AND (fp.id IS NULL OR fp.is_shop_only = false)
+       AND pa.id IS NULL
      ORDER BY a.created_at DESC`,
     [permissionLevel]
   )
@@ -296,7 +320,7 @@ export async function getRecentDownloads(limit: number = 5): Promise<AttachmentW
 
   const attachmentIds = downloads.map((d) => d.attachment_id)
 
-  // Build query with permission check
+  // Build query with permission check and exclude shop-only products
   let query = `
     SELECT 
       a.id,
@@ -317,10 +341,12 @@ export async function getRecentDownloads(limit: number = 5): Promise<AttachmentW
     LEFT JOIN lessons l ON a.lesson_id = l.id
     LEFT JOIN modules m ON l.module_id = m.id
     LEFT JOIN courses c ON m.course_id = c.id
+    LEFT JOIN file_products fp ON a.id = fp.attachment_id
     INNER JOIN tiers t ON a.minimum_tier_id = t.id
     INNER JOIN user_downloads ud ON a.id = ud.attachment_id
     WHERE a.id = ANY($1::uuid[])
       AND ud.user_id = $2
+      AND (fp.id IS NULL OR fp.is_shop_only = false)
   `
 
   const params: any[] = [attachmentIds, userId]

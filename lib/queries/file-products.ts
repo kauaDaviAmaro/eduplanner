@@ -17,6 +17,13 @@ export type FileProduct = {
   file_name: string
   file_type: string
   file_url: string | null
+  // Shop-specific fields
+  video_url: string | null
+  thumbnail_url: string | null
+  is_shop_only: boolean
+  long_description: string | null
+  specifications: Record<string, any> | null
+  tags: string[] | null
 }
 
 /**
@@ -42,7 +49,13 @@ export async function getFileProducts(includeInactive: boolean = false): Promise
        fp.updated_at,
        a.file_name,
        a.file_type,
-       a.file_url
+       a.file_url,
+       fp.video_url,
+       fp.thumbnail_url,
+       fp.is_shop_only,
+       fp.long_description,
+       fp.specifications,
+       fp.tags
      FROM file_products fp
      INNER JOIN attachments a ON fp.attachment_id = a.id
   `
@@ -73,7 +86,13 @@ export async function getFileProductById(id: string): Promise<FileProduct | null
        fp.updated_at,
        a.file_name,
        a.file_type,
-       a.file_url
+       a.file_url,
+       fp.video_url,
+       fp.thumbnail_url,
+       fp.is_shop_only,
+       fp.long_description,
+       fp.specifications,
+       fp.tags
      FROM file_products fp
      INNER JOIN attachments a ON fp.attachment_id = a.id
      WHERE fp.id = $1`,
@@ -107,6 +126,12 @@ export async function getFileProductsWithPurchaseStatus(): Promise<FileProductWi
        a.file_name,
        a.file_type,
        a.file_url,
+       fp.video_url,
+       fp.thumbnail_url,
+       fp.is_shop_only,
+       fp.long_description,
+       fp.specifications,
+       fp.tags,
        CASE WHEN fpur.id IS NOT NULL THEN true ELSE false END as is_purchased
      FROM file_products fp
      INNER JOIN attachments a ON fp.attachment_id = a.id
@@ -163,7 +188,13 @@ export async function getUserPurchasedFiles(userId: string): Promise<FileProduct
        fp.updated_at,
        a.file_name,
        a.file_type,
-       a.file_url
+       a.file_url,
+       fp.video_url,
+       fp.thumbnail_url,
+       fp.is_shop_only,
+       fp.long_description,
+       fp.specifications,
+       fp.tags
      FROM file_purchases fpur
      INNER JOIN file_products fp ON fpur.file_product_id = fp.id
      INNER JOIN attachments a ON fp.attachment_id = a.id

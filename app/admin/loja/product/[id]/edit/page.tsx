@@ -45,7 +45,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
           <p className="text-gray-600">Edite as informações do bundle</p>
         </div>
 
-        <ProductForm product={product} attachments={attachments} />
+        <ProductForm product={product} attachments={attachments} tiers={tiers} />
       </main>
     </div>
   )

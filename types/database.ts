@@ -546,6 +546,64 @@ export interface Database {
           updated_at?: string
         }
       }
+      support_tickets: {
+        Row: {
+          id: string
+          user_id: string | null
+          email: string | null
+          subject: string
+          status: 'open' | 'in_progress' | 'resolved' | 'closed'
+          priority: 'low' | 'medium' | 'high'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          email?: string | null
+          subject: string
+          status?: 'open' | 'in_progress' | 'resolved' | 'closed'
+          priority?: 'low' | 'medium' | 'high'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          email?: string | null
+          subject?: string
+          status?: 'open' | 'in_progress' | 'resolved' | 'closed'
+          priority?: 'low' | 'medium' | 'high'
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      support_messages: {
+        Row: {
+          id: string
+          ticket_id: string
+          user_id: string | null
+          message: string
+          is_from_support: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          ticket_id: string
+          user_id?: string | null
+          message: string
+          is_from_support?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          ticket_id?: string
+          user_id?: string | null
+          message?: string
+          is_from_support?: boolean
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

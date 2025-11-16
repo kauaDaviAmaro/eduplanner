@@ -11,7 +11,26 @@
 
 import { Pool } from 'pg'
 import { readdir, readFile } from 'fs/promises'
+import { readFileSync } from 'fs'
 import { join } from 'path'
+
+// Load .env file if it exists
+try {
+  const envPath = join(process.cwd(), '.env')
+  const envFile = readFileSync(envPath, 'utf-8')
+  envFile.split('\n').forEach((line) => {
+    const trimmedLine = line.trim()
+    if (trimmedLine && !trimmedLine.startsWith('#') && trimmedLine.includes('=')) {
+      const [key, ...valueParts] = trimmedLine.split('=')
+      const value = valueParts.join('=').trim()
+      if (key && value && !process.env[key]) {
+        process.env[key] = value
+      }
+    }
+  })
+} catch (error) {
+  // .env file doesn't exist, that's okay
+}
 
 const connectionString = process.env.DATABASE_URL
 
